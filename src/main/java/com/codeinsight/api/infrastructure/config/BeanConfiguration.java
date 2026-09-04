@@ -1,5 +1,6 @@
 package com.codeinsight.api.infrastructure.config;
 
+import com.codeinsight.api.application.pipeline.stage.ComponentDetectorStage;
 import com.codeinsight.api.application.pipeline.stage.FileScannerStage;
 import com.codeinsight.api.application.pipeline.stage.RepositoryLoaderStage;
 import com.codeinsight.api.application.pipeline.stage.TechnologyDetectorStage;
@@ -14,7 +15,8 @@ public class BeanConfiguration {
     @Bean
     public AnalyzeRepositoryUseCase analyzeRepositoryUseCase(RepositoryLoaderStage repositoryLoader,
                                                                FileScannerStage fileScanner,
-                                                               TechnologyDetectorStage technologyDetector) {
-        return new AnalyzeRepositoryService(repositoryLoader, fileScanner, technologyDetector);
+                                                               TechnologyDetectorStage technologyDetector,
+                                                               ComponentDetectorStage componentDetector) {
+        return new AnalyzeRepositoryService(repositoryLoader, fileScanner, technologyDetector, componentDetector);
     }
 }
