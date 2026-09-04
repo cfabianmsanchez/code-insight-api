@@ -1,8 +1,11 @@
 package com.codeinsight.api.infrastructure.config;
 
 import com.codeinsight.api.application.port.in.AnalyzeCodeUseCase;
+import com.codeinsight.api.application.port.in.FetchCodeUseCase;
+import com.codeinsight.api.application.port.out.CodeFetcherPort;
 import com.codeinsight.api.application.port.out.SaveAnalysisReportPort;
 import com.codeinsight.api.application.service.AnalyzeCodeService;
+import com.codeinsight.api.application.service.FetchCodeService;
 import com.codeinsight.api.domain.strategy.CodeAnalysisStrategy;
 import com.codeinsight.api.domain.strategy.CodeAnalysisStrategyFactory;
 import com.codeinsight.api.domain.strategy.JavaCodeAnalysisStrategy;
@@ -34,5 +37,10 @@ public class BeanConfiguration {
     public AnalyzeCodeUseCase analyzeCodeUseCase(CodeAnalysisStrategyFactory strategyFactory,
                                                 SaveAnalysisReportPort saveAnalysisReportPort) {
         return new AnalyzeCodeService(strategyFactory, saveAnalysisReportPort);
+    }
+
+    @Bean
+    public FetchCodeUseCase fetchCodeUseCase(List<CodeFetcherPort> fetchers) {
+        return new FetchCodeService(fetchers);
     }
 }

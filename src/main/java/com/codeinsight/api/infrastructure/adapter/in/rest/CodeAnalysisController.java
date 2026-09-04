@@ -19,8 +19,8 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/v1/analysis")
-@CrossOrigin(origins = "*") // Permite la comunicación con el proyecto Frontend
-@Tag(name = "Code Analysis", description = "Endpoints for analyzing code metrics and insights")
+@CrossOrigin(origins = "*")
+@Tag(name = "Code Analysis", description = "Endpoints for inline code analysis and insights")
 public class CodeAnalysisController {
 
     private final AnalyzeCodeUseCase analyzeCodeUseCase;
@@ -32,7 +32,7 @@ public class CodeAnalysisController {
     }
 
     @PostMapping
-    @Operation(summary = "Analyze code snippet", description = "Submits a code analysis request using the strategy matching the specified language type.")
+    @Operation(summary = "Analyze inline code snippet", description = "Submits an inline code snippet analysis request.")
     public ResponseEntity<AnalysisResponseDto> analyzeCode(@Valid @RequestBody AnalysisRequestDto requestDto) {
         CodeAnalysisRequest domainRequest = mapper.toDomain(requestDto);
         AnalysisReport report = analyzeCodeUseCase.analyzeCode(domainRequest);
