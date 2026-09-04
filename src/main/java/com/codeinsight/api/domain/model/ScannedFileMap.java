@@ -1,0 +1,56 @@
+package com.codeinsight.api.domain.model;
+
+import java.nio.file.Path;
+import java.util.List;
+import java.util.Map;
+
+public class ScannedFileMap {
+    private Path rootPath;
+    private int totalFiles;
+    private int totalDirectories;
+    private Map<String, Integer> extensionCounts;
+    private List<String> relativeFilePaths;
+    private List<Path> manifestFiles;
+
+    public ScannedFileMap() {}
+
+    public ScannedFileMap(Path rootPath, int totalFiles, int totalDirectories,
+                          Map<String, Integer> extensionCounts,
+                          List<String> relativeFilePaths, List<Path> manifestFiles) {
+        this.rootPath = rootPath;
+        this.totalFiles = totalFiles;
+        this.totalDirectories = totalDirectories;
+        this.extensionCounts = extensionCounts;
+        this.relativeFilePaths = relativeFilePaths;
+        this.manifestFiles = manifestFiles;
+    }
+
+    public Path getRootPath() { return rootPath; }
+    public int getTotalFiles() { return totalFiles; }
+    public int getTotalDirectories() { return totalDirectories; }
+    public Map<String, Integer> getExtensionCounts() { return extensionCounts; }
+    public List<String> getRelativeFilePaths() { return relativeFilePaths; }
+    public List<Path> getManifestFiles() { return manifestFiles; }
+
+    public static Builder builder() { return new Builder(); }
+
+    public static class Builder {
+        private Path rootPath;
+        private int totalFiles;
+        private int totalDirectories;
+        private Map<String, Integer> extensionCounts;
+        private List<String> relativeFilePaths;
+        private List<Path> manifestFiles;
+
+        public Builder rootPath(Path rootPath) { this.rootPath = rootPath; return this; }
+        public Builder totalFiles(int totalFiles) { this.totalFiles = totalFiles; return this; }
+        public Builder totalDirectories(int totalDirectories) { this.totalDirectories = totalDirectories; return this; }
+        public Builder extensionCounts(Map<String, Integer> extensionCounts) { this.extensionCounts = extensionCounts; return this; }
+        public Builder relativeFilePaths(List<String> relativeFilePaths) { this.relativeFilePaths = relativeFilePaths; return this; }
+        public Builder manifestFiles(List<Path> manifestFiles) { this.manifestFiles = manifestFiles; return this; }
+
+        public ScannedFileMap build() {
+            return new ScannedFileMap(rootPath, totalFiles, totalDirectories, extensionCounts, relativeFilePaths, manifestFiles);
+        }
+    }
+}
