@@ -26,7 +26,7 @@ public class FileScannerStage {
     private static final Set<String> IGNORED_DIRECTORIES = Set.of(
             ".git", "node_modules", "target", "build", ".gradle",
             ".idea", ".vscode", "dist", "bin", ".mvn", "out",
-            "venv", "__pycache__", "coverage"
+            "venv", "__pycache__", "coverage", "__MACOSX"
     );
 
     // Corregido: Todas las cadenas están en minúsculas para coincidir exactamente con fileName.toLowerCase()
@@ -62,12 +62,19 @@ public class FileScannerStage {
 
                 @Override
                 public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) {
+                    String fileName = file.getFileName().toString();
+                    if (fileName.startsWith("._") 
+                            || fileName.equalsIgnoreCase("Thumbs.db") 
+                            || fileName.equalsIgnoreCase("desktop.ini") 
+                            || fileName.equalsIgnoreCase(".DS_Store")) {
+                        return FileVisitResult.CONTINUE;
+                    }
+
                     counts[0]++;
                     Path relative = rootPath.relativize(file);
                     String relString = relative.toString();
                     relativePaths.add(relString);
 
-                    String fileName = file.getFileName().toString();
                     if (MANIFEST_FILENAMES.contains(fileName.toLowerCase())) {
                         manifestFiles.add(file);
                     }

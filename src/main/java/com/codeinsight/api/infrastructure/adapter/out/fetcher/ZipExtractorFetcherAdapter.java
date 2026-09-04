@@ -40,6 +40,13 @@ public class ZipExtractorFetcherAdapter implements CodeFetcherPort {
         try (ZipInputStream zis = new ZipInputStream(inputStream)) {
             ZipEntry zipEntry = zis.getNextEntry();
             while (zipEntry != null) {
+                String entryName = zipEntry.getName();
+                String fileNameOnly = new File(entryName).getName();
+                if (entryName.contains("__MACOSX") || fileNameOnly.startsWith("._")) {
+                    zipEntry = zis.getNextEntry();
+                    continue;
+                }
+
                 File newFile = newFile(targetDir.toFile(), zipEntry);
                 if (zipEntry.isDirectory()) {
                     if (!newFile.isDirectory() && !newFile.mkdirs()) {
