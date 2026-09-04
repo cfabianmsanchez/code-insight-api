@@ -37,4 +37,16 @@ class FileScannerStageTest {
         assertEquals(1, result.getManifestFiles().size());
         assertTrue(result.getManifestFiles().get(0).getFileName().toString().equals("pom.xml"));
     }
+
+    @Test
+    void scan_shouldIncludeHexagonalPortOutDirectory(@TempDir Path tempDir) throws IOException {
+        Path portOut = Files.createDirectories(tempDir.resolve("src/main/java/com/demo/application/port/out"));
+        Files.writeString(portOut.resolve("SomePort.java"), "public interface SomePort {}");
+
+        ScannedFileMap result = fileScannerStage.scan(tempDir);
+
+        assertNotNull(result);
+        assertTrue(result.getRelativeFilePaths().stream()
+                .anyMatch(path -> path.replace("\\", "/").contains("application/port/out/SomePort.java")));
+    }
 }

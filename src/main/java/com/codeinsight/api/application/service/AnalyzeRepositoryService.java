@@ -1,11 +1,15 @@
 package com.codeinsight.api.application.service;
 
 import com.codeinsight.api.application.model.TempCodeDirectory;
+import com.codeinsight.api.application.pipeline.stage.ArchitectureEvidenceDetectorStage;
 import com.codeinsight.api.application.pipeline.stage.ComponentDetectorStage;
+import com.codeinsight.api.application.pipeline.stage.ContextBuilderStage;
 import com.codeinsight.api.application.pipeline.stage.FileScannerStage;
 import com.codeinsight.api.application.pipeline.stage.RepositoryLoaderStage;
 import com.codeinsight.api.application.pipeline.stage.TechnologyDetectorStage;
 import com.codeinsight.api.application.port.in.AnalyzeRepositoryUseCase;
+import com.codeinsight.api.domain.model.AnalysisContext;
+import com.codeinsight.api.domain.model.ArchitectureEvidenceResult;
 import com.codeinsight.api.domain.model.ComponentAnalysisResult;
 import com.codeinsight.api.domain.model.FetchCodeRequest;
 import com.codeinsight.api.domain.model.RepositoryAnalysisResult;
@@ -20,15 +24,21 @@ public class AnalyzeRepositoryService implements AnalyzeRepositoryUseCase {
     private final FileScannerStage fileScanner;
     private final TechnologyDetectorStage technologyDetector;
     private final ComponentDetectorStage componentDetector;
+    private final ArchitectureEvidenceDetectorStage architectureEvidenceDetector;
+    private final ContextBuilderStage contextBuilder;
 
     public AnalyzeRepositoryService(RepositoryLoaderStage repositoryLoader,
                                    FileScannerStage fileScanner,
                                    TechnologyDetectorStage technologyDetector,
-                                   ComponentDetectorStage componentDetector) {
+                                   ComponentDetectorStage componentDetector,
+                                   ArchitectureEvidenceDetectorStage architectureEvidenceDetector,
+                                   ContextBuilderStage contextBuilder) {
         this.repositoryLoader = repositoryLoader;
         this.fileScanner = fileScanner;
         this.technologyDetector = technologyDetector;
         this.componentDetector = componentDetector;
+        this.architectureEvidenceDetector = architectureEvidenceDetector;
+        this.contextBuilder = contextBuilder;
     }
 
     @Override
@@ -45,6 +55,12 @@ public class AnalyzeRepositoryService implements AnalyzeRepositoryUseCase {
             // Etapa 4: Component Detector (Clasificación de componentes arquitectónicos)
             ComponentAnalysisResult componentAnalysis = componentDetector.detect(scannedFiles);
 
+            // Etapa 5: Architecture Evidence Detector (Recopilación factual de paquetes y evidencias)
+            ArchitectureEvidenceResult architectureEvidence = architectureEvidenceDetector.detect(scannedFiles, componentAnalysis);
+
+            // Etapa 6: Context Builder (Ensamblado del prompt estructurado y contexto de análisis)
+            AnalysisContext analysisContext = contextBuilder.buildContext(request, scannedFiles, technologyStack, componentAnalysis, architectureEvidence);
+
             return RepositoryAnalysisResult.builder()
                     .projectKey(request.getProjectKey())
                     .sourceType(request.getSourceType())
@@ -52,6 +68,8 @@ public class AnalyzeRepositoryService implements AnalyzeRepositoryUseCase {
                     .totalDirectories(scannedFiles.getTotalDirectories())
                     .technologyStack(technologyStack)
                     .componentAnalysis(componentAnalysis)
+                    .architectureEvidence(architectureEvidence)
+                    .analysisContext(analysisContext)
                     .extensionCounts(scannedFiles.getExtensionCounts())
                     .timestamp(LocalDateTime.now())
                     .build();

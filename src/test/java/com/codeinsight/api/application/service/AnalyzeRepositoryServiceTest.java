@@ -1,7 +1,9 @@
 package com.codeinsight.api.application.service;
 
 import com.codeinsight.api.application.model.TempCodeDirectory;
+import com.codeinsight.api.application.pipeline.stage.ArchitectureEvidenceDetectorStage;
 import com.codeinsight.api.application.pipeline.stage.ComponentDetectorStage;
+import com.codeinsight.api.application.pipeline.stage.ContextBuilderStage;
 import com.codeinsight.api.application.pipeline.stage.FileScannerStage;
 import com.codeinsight.api.application.pipeline.stage.RepositoryLoaderStage;
 import com.codeinsight.api.application.pipeline.stage.TechnologyDetectorStage;
@@ -64,8 +66,10 @@ class AnalyzeRepositoryServiceTest {
         FileScannerStage scannerStage = new FileScannerStage();
         TechnologyDetectorStage techStage = new TechnologyDetectorStage();
         ComponentDetectorStage componentStage = new ComponentDetectorStage();
+        ArchitectureEvidenceDetectorStage archStage = new ArchitectureEvidenceDetectorStage();
+        ContextBuilderStage contextStage = new ContextBuilderStage();
 
-        AnalyzeRepositoryService service = new AnalyzeRepositoryService(loaderStage, scannerStage, techStage, componentStage);
+        AnalyzeRepositoryService service = new AnalyzeRepositoryService(loaderStage, scannerStage, techStage, componentStage, archStage, contextStage);
 
         FetchCodeRequest request = FetchCodeRequest.builder()
                 .projectKey("pipeline-integration-test")
@@ -84,5 +88,8 @@ class AnalyzeRepositoryServiceTest {
 
         assertNotNull(result.getComponentAnalysis());
         assertEquals(1, result.getComponentAnalysis().getTotalComponents());
+
+        assertNotNull(result.getArchitectureEvidence());
+        assertNotNull(result.getAnalysisContext());
     }
 }

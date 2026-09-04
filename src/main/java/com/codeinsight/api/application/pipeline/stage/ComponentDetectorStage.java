@@ -68,6 +68,9 @@ public class ComponentDetectorStage {
 
     private boolean isSourceCodeFile(String relativePath) {
         String lower = relativePath.toLowerCase();
+        if (lower.contains("src/test/") || lower.contains("/test/") || lower.endsWith("test.java") || lower.endsWith("test.ts")) {
+            return false;
+        }
         return lower.endsWith(".java") || lower.endsWith(".ts");
     }
 
@@ -81,7 +84,7 @@ public class ComponentDetectorStage {
             if (hasAnnotation(content, "Service")) {
                 return ComponentType.SERVICE;
             }
-            if (hasAnnotation(content, "Repository") || content.contains("extends JpaRepository") || content.contains("extends CrudRepository")) {
+            if (hasAnnotation(content, "Repository") || hasInterfaceExtension(content, "JpaRepository") || hasInterfaceExtension(content, "CrudRepository")) {
                 return ComponentType.REPOSITORY;
             }
             if (hasAnnotation(content, "Entity") || hasAnnotation(content, "Table")) {
@@ -107,6 +110,10 @@ public class ComponentDetectorStage {
 
     private boolean hasAnnotation(String content, String annotation) {
         return Pattern.compile("@" + Pattern.quote(annotation) + "\\b").matcher(content).find();
+    }
+
+    private boolean hasInterfaceExtension(String content, String interfaceName) {
+        return Pattern.compile("\\bextends\\s+.*" + Pattern.quote(interfaceName) + "\\b").matcher(content).find();
     }
 
     private String extractClassName(String relativePath) {

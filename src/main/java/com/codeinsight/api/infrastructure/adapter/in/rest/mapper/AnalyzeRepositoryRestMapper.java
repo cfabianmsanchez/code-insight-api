@@ -40,6 +40,8 @@ public class AnalyzeRepositoryRestMapper {
                 .totalDirectories(result.getTotalDirectories())
                 .technologyStack(result.getTechnologyStack())
                 .componentAnalysis(result.getComponentAnalysis())
+                .architectureEvidence(result.getArchitectureEvidence())
+                .analysisContext(result.getAnalysisContext())
                 .extensionCounts(result.getExtensionCounts())
                 .timestamp(result.getTimestamp())
                 .build();

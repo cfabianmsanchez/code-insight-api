@@ -25,7 +25,7 @@ public class FileScannerStage {
 
     private static final Set<String> IGNORED_DIRECTORIES = Set.of(
             ".git", "node_modules", "target", "build", ".gradle",
-            ".idea", ".vscode", "dist", "bin", ".mvn", "out",
+            ".idea", ".vscode", "dist", "bin", ".mvn",
             "venv", "__pycache__", "coverage", "__MACOSX"
     );
 
