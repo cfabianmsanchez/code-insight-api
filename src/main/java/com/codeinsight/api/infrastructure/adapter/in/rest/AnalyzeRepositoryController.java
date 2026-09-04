@@ -1,0 +1,57 @@
+package com.codeinsight.api.infrastructure.adapter.in.rest;
+
+import com.codeinsight.api.application.port.in.AnalyzeRepositoryUseCase;
+import com.codeinsight.api.domain.model.FetchCodeRequest;
+import com.codeinsight.api.domain.model.RepositoryAnalysisResult;
+import com.codeinsight.api.infrastructure.adapter.in.rest.dto.GithubAnalysisRequestDto;
+import com.codeinsight.api.infrastructure.adapter.in.rest.dto.RepositoryAnalysisResponseDto;
+import com.codeinsight.api.infrastructure.adapter.in.rest.mapper.AnalyzeRepositoryRestMapper;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.io.IOException;
+
+@RestController
+@RequestMapping("/api/v1/analyses")
+@CrossOrigin(origins = "*")
+@Tag(name = "Repository Analysis Pipeline", description = "Endpoints for executing the automated reverse engineering pipeline")
+public class AnalyzeRepositoryController {
+
+    private final AnalyzeRepositoryUseCase analyzeRepositoryUseCase;
+    private final AnalyzeRepositoryRestMapper mapper;
+
+    public AnalyzeRepositoryController(AnalyzeRepositoryUseCase analyzeRepositoryUseCase,
+                                       AnalyzeRepositoryRestMapper mapper) {
+        this.analyzeRepositoryUseCase = analyzeRepositoryUseCase;
+        this.mapper = mapper;
+    }
+
+    @PostMapping("/github")
+    @Operation(summary = "Analyze GitHub repository", description = "Clones a public GitHub repo, scans files, detects technology stack, and cleans up efimerally.")
+    public ResponseEntity<RepositoryAnalysisResponseDto> analyzeGithubRepository(@Valid @RequestBody GithubAnalysisRequestDto requestDto) {
+        FetchCodeRequest domainRequest = mapper.toDomain(requestDto);
+        RepositoryAnalysisResult result = analyzeRepositoryUseCase.analyzeRepository(domainRequest);
+        return ResponseEntity.ok(mapper.toResponseDto(result));
+    }
+
+    @PostMapping(value = "/zip", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(summary = "Analyze .ZIP repository file", description = "Unpacks an uploaded .ZIP file, scans files, detects technology stack, and cleans up efimerally.")
+    public ResponseEntity<RepositoryAnalysisResponseDto> analyzeZipFile(
+            @RequestParam("projectKey") String projectKey,
+            @RequestParam("file") MultipartFile file) throws IOException {
+
+        FetchCodeRequest domainRequest = mapper.toDomain(projectKey, file);
+        RepositoryAnalysisResult result = analyzeRepositoryUseCase.analyzeRepository(domainRequest);
+        return ResponseEntity.ok(mapper.toResponseDto(result));
+    }
+}

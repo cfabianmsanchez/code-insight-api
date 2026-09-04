@@ -1,9 +1,9 @@
 package com.codeinsight.api.infrastructure.adapter.out.fetcher;
 
+import com.codeinsight.api.application.model.TempCodeDirectory;
 import com.codeinsight.api.application.port.out.CodeFetcherPort;
 import com.codeinsight.api.domain.model.FetchCodeRequest;
 import com.codeinsight.api.domain.model.SourceType;
-import com.codeinsight.api.domain.model.TempCodeDirectory;
 import org.springframework.stereotype.Component;
 
 import java.io.File;

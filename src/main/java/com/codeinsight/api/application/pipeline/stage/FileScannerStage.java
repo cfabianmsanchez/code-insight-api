@@ -1,4 +1,4 @@
-package com.codeinsight.api.domain.pipeline.stage;
+package com.codeinsight.api.application.pipeline.stage;
 
 import com.codeinsight.api.domain.model.ScannedFileMap;
 import org.springframework.stereotype.Component;
@@ -29,9 +29,10 @@ public class FileScannerStage {
             "venv", "__pycache__", "coverage"
     );
 
+    // Corregido: Todas las cadenas están en minúsculas para coincidir exactamente con fileName.toLowerCase()
     private static final Set<String> MANIFEST_FILENAMES = Set.of(
             "pom.xml", "build.gradle", "build.gradle.kts", "package.json",
-            "requirements.txt", "Pipfile", "pyproject.toml", "Dockerfile",
+            "requirements.txt", "pipfile", "pyproject.toml", "dockerfile",
             "docker-compose.yml", "docker-compose.yaml", "application.yml", "application.properties"
     );
 

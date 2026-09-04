@@ -1,10 +1,10 @@
 package com.codeinsight.api.application.service;
 
+import com.codeinsight.api.application.model.TempCodeDirectory;
 import com.codeinsight.api.application.port.in.FetchCodeUseCase;
 import com.codeinsight.api.application.port.out.CodeFetcherPort;
 import com.codeinsight.api.domain.model.FetchCodeRequest;
 import com.codeinsight.api.domain.model.FetchCodeResult;
-import com.codeinsight.api.domain.model.TempCodeDirectory;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -27,13 +27,11 @@ public class FetchCodeService implements FetchCodeUseCase {
         CodeFetcherPort fetcher = fetchers.stream()
                 .filter(f -> f.supports(request))
                 .findFirst()
-                .orElseThrow(() -> new IllegalArgumentException(
-                        "No fetcher supported for source type: " + request.getSourceType()));
+                .orElseThrow(() -> new IllegalArgumentException("No fetcher supported for source type: " + request.getSourceType()));
 
         AtomicInteger fileCount = new AtomicInteger(0);
         AtomicInteger dirCount = new AtomicInteger(0);
 
-        // Garantiza la eliminación del directorio temporal al finalizar
         try (TempCodeDirectory tempDir = fetcher.fetchCode(request)) {
             Path path = tempDir.getTempPath();
             if (path != null && Files.exists(path)) {

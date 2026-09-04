@@ -1,8 +1,8 @@
-package com.codeinsight.api.domain.pipeline.stage;
+package com.codeinsight.api.application.pipeline.stage;
 
+import com.codeinsight.api.application.model.TempCodeDirectory;
 import com.codeinsight.api.application.port.out.CodeFetcherPort;
 import com.codeinsight.api.domain.model.FetchCodeRequest;
-import com.codeinsight.api.domain.model.TempCodeDirectory;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -21,12 +21,6 @@ public class RepositoryLoaderStage {
         this.fetchers = fetchers;
     }
 
-    /**
-     * Ejecuta la Etapa 1: Carga efímera del repositorio.
-     *
-     * @param request Solicitud de adquisición con origen GITHUB_REPO o ZIP_FILE.
-     * @return TempCodeDirectory listo para las etapas de escaneo y detección.
-     */
     public TempCodeDirectory loadRepository(FetchCodeRequest request) {
         if (request == null) {
             throw new IllegalArgumentException("FetchCodeRequest cannot be null");

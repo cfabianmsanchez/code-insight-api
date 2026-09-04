@@ -1,5 +1,6 @@
-package com.codeinsight.api.domain.model;
+package com.codeinsight.api.application.model;
 
+import com.codeinsight.api.domain.model.SourceType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

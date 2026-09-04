@@ -1,4 +1,4 @@
-package com.codeinsight.api.domain.pipeline.stage;
+package com.codeinsight.api.application.pipeline.stage;
 
 import com.codeinsight.api.domain.model.ScannedFileMap;
 import org.junit.jupiter.api.Test;
@@ -18,12 +18,10 @@ class FileScannerStageTest {
 
     @Test
     void scan_shouldScanFilesFilterNoiseAndDetectManifests(@TempDir Path tempDir) throws IOException {
-        // Estructura de archivos simulada
         Path src = Files.createDirectories(tempDir.resolve("src/main/java/com/demo"));
         Files.writeString(src.resolve("UserController.java"), "public class UserController {}");
         Files.writeString(tempDir.resolve("pom.xml"), "<project></project>");
 
-        // Directorio de ruido que debe ser ignorado (.git y target)
         Path gitDir = Files.createDirectories(tempDir.resolve(".git"));
         Files.writeString(gitDir.resolve("HEAD"), "ref: refs/heads/main");
 
@@ -33,7 +31,7 @@ class FileScannerStageTest {
         ScannedFileMap result = fileScannerStage.scan(tempDir);
 
         assertNotNull(result);
-        assertEquals(2, result.getTotalFiles()); // Solo UserController.java y pom.xml (ignora .git/HEAD y target/App.class)
+        assertEquals(2, result.getTotalFiles());
         assertEquals(1, result.getExtensionCounts().get(".java"));
         assertEquals(1, result.getExtensionCounts().get(".xml"));
         assertEquals(1, result.getManifestFiles().size());

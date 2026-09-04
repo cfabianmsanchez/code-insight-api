@@ -1,9 +1,9 @@
-package com.codeinsight.api.domain.pipeline.stage;
+package com.codeinsight.api.application.pipeline.stage;
 
+import com.codeinsight.api.application.model.TempCodeDirectory;
 import com.codeinsight.api.application.port.out.CodeFetcherPort;
 import com.codeinsight.api.domain.model.FetchCodeRequest;
 import com.codeinsight.api.domain.model.SourceType;
-import com.codeinsight.api.domain.model.TempCodeDirectory;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;

@@ -1,9 +1,9 @@
 package com.codeinsight.api.infrastructure.adapter.out.fetcher;
 
+import com.codeinsight.api.application.model.TempCodeDirectory;
 import com.codeinsight.api.application.port.out.CodeFetcherPort;
 import com.codeinsight.api.domain.model.FetchCodeRequest;
 import com.codeinsight.api.domain.model.SourceType;
-import com.codeinsight.api.domain.model.TempCodeDirectory;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.springframework.stereotype.Component;
@@ -32,7 +32,6 @@ public class GitRepositoryFetcherAdapter implements CodeFetcherPort {
                 repoUrl = repoUrl + ".git";
             }
 
-            // Clonado efímero ligero usando Eclipse JGit
             Git git = Git.cloneRepository()
                     .setURI(repoUrl)
                     .setDirectory(tempDir.toFile())

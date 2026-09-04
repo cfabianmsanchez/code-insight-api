@@ -1,10 +1,9 @@
 package com.codeinsight.api.infrastructure.adapter.out.fetcher;
 
+import com.codeinsight.api.application.model.TempCodeDirectory;
 import com.codeinsight.api.domain.model.FetchCodeRequest;
 import com.codeinsight.api.domain.model.SourceType;
-import com.codeinsight.api.domain.model.TempCodeDirectory;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -46,7 +45,6 @@ class ZipExtractorFetcherAdapterTest {
             assertTrue(Files.exists(createdTempPath.resolve("sample.txt")));
         }
 
-        // Después del bloque try-with-resources (close), la carpeta debe estar totalmente eliminada
         assertFalse(Files.exists(createdTempPath));
     }
 }
