@@ -27,6 +27,8 @@ public class RepositoryAnalysisResult {
     private AnalysisContext analysisContext;
     /** Síntesis técnica y evaluación del modelo de IA (Ollama). */
     private String aiSynthesis;
+    /** Resumen funcional del propósito del repositorio generado por el LLM. */
+    private String functionalSummary;
     /** Conteo por extensión de archivo. */
     private Map<String, Integer> extensionCounts;
     /** Marca de tiempo de realización del análisis. */
@@ -39,6 +41,7 @@ public class RepositoryAnalysisResult {
                                     ComponentAnalysisResult componentAnalysis,
                                     ArchitectureEvidenceResult architectureEvidence,
                                     AnalysisContext analysisContext, String aiSynthesis,
+                                    String functionalSummary,
                                     Map<String, Integer> extensionCounts, LocalDateTime timestamp) {
         this.projectKey = projectKey;
         this.sourceType = sourceType;
@@ -49,6 +52,7 @@ public class RepositoryAnalysisResult {
         this.architectureEvidence = architectureEvidence;
         this.analysisContext = analysisContext;
         this.aiSynthesis = aiSynthesis;
+        this.functionalSummary = functionalSummary;
         this.extensionCounts = extensionCounts;
         this.timestamp = timestamp;
     }
@@ -62,6 +66,7 @@ public class RepositoryAnalysisResult {
     public ArchitectureEvidenceResult getArchitectureEvidence() { return architectureEvidence; }
     public AnalysisContext getAnalysisContext() { return analysisContext; }
     public String getAiSynthesis() { return aiSynthesis; }
+    public String getFunctionalSummary() { return functionalSummary; }
     public Map<String, Integer> getExtensionCounts() { return extensionCounts; }
     public LocalDateTime getTimestamp() { return timestamp; }
 
@@ -77,6 +82,7 @@ public class RepositoryAnalysisResult {
         private ArchitectureEvidenceResult architectureEvidence;
         private AnalysisContext analysisContext;
         private String aiSynthesis;
+        private String functionalSummary;
         private Map<String, Integer> extensionCounts;
         private LocalDateTime timestamp;
 
@@ -89,11 +95,12 @@ public class RepositoryAnalysisResult {
         public Builder architectureEvidence(ArchitectureEvidenceResult architectureEvidence) { this.architectureEvidence = architectureEvidence; return this; }
         public Builder analysisContext(AnalysisContext analysisContext) { this.analysisContext = analysisContext; return this; }
         public Builder aiSynthesis(String aiSynthesis) { this.aiSynthesis = aiSynthesis; return this; }
+        public Builder functionalSummary(String functionalSummary) { this.functionalSummary = functionalSummary; return this; }
         public Builder extensionCounts(Map<String, Integer> extensionCounts) { this.extensionCounts = extensionCounts; return this; }
         public Builder timestamp(LocalDateTime timestamp) { this.timestamp = timestamp; return this; }
 
         public RepositoryAnalysisResult build() {
-            return new RepositoryAnalysisResult(projectKey, sourceType, totalFiles, totalDirectories, technologyStack, componentAnalysis, architectureEvidence, analysisContext, aiSynthesis, extensionCounts, timestamp);
+            return new RepositoryAnalysisResult(projectKey, sourceType, totalFiles, totalDirectories, technologyStack, componentAnalysis, architectureEvidence, analysisContext, aiSynthesis, functionalSummary, extensionCounts, timestamp);
         }
     }
 }

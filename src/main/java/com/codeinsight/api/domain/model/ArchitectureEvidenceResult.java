@@ -70,7 +70,8 @@ public class ArchitectureEvidenceResult {
         this.evidenceNotes = evidenceNotes != null ? Collections.unmodifiableList(evidenceNotes) : Collections.emptyList();
         this.inboundPortImplementations = inboundPortImplementations != null ? Collections.unmodifiableMap(inboundPortImplementations) : Collections.emptyMap();
         this.outboundAdapterImplementations = outboundAdapterImplementations != null ? Collections.unmodifiableMap(outboundAdapterImplementations) : Collections.emptyMap();
-        this.engineeringEvidence = engineeringEvidence != null ? engineeringEvidence : new EngineeringEvidence(false, 0, false, 0);
+        this.engineeringEvidence = engineeringEvidence != null ? engineeringEvidence
+                : new EngineeringEvidence(0, Collections.emptyList(), false, false, 0, false, null, null, null, null);
     }
 
     // ── Getters ──────────────────────────────────────────────────────────────
@@ -127,19 +128,45 @@ public class ArchitectureEvidenceResult {
 
     // ── Evidencias de ingeniería ──────────────────────────────────────────────
 
+    // ── Evidencias de ingeniería (stack-agnostic) ─────────────────────────────
+
     /**
      * Evidencias de buenas prácticas de ingeniería detectadas de forma estática.
-     * Ningún campo niega la existencia de una práctica; solo indica si fue observada.
      *
-     * @param springConfigurationDetected {@code true} si se detectó una clase {@code @Configuration}.
-     * @param beanDefinitions             Número de métodos {@code @Bean} encontrados.
-     * @param constructorInjectionDetected {@code true} si se detectó inyección por constructor.
-     * @param testFilesDetected           Cantidad de archivos de test encontrados en {@code src/test/}.
+     * <p>Campos genéricos (válidos para cualquier stack):
+     * <ul>
+     *   <li>{@code testFilesDetected}: cantidad total de archivos de test encontrados.</li>
+     *   <li>{@code testDirectories}: directorios de test identificados (test/, tests/, __tests__/, etc.).</li>
+     *   <li>{@code testScriptDetected}: si existe un script {@code test} en {@code package.json}.</li>
+     * </ul>
+     * Campos específicos de Spring/Java:
+     * <ul>
+     *   <li>{@code springConfigurationDetected}: clase {@code @Configuration} detectada.</li>
+     *   <li>{@code beanDefinitions}: número de métodos {@code @Bean}.</li>
+     *   <li>{@code constructorInjectionDetected}: inyección por constructor detectada.</li>
+     * </ul>
+     * Metadata del proyecto (extraída de manifiestos como {@code package.json}):
+     * <ul>
+     *   <li>{@code projectName}: nombre declarado en el manifiesto.</li>
+     *   <li>{@code projectDescription}: descripción declarada en el manifiesto.</li>
+     *   <li>{@code mainEntry}: punto de entrada principal declarado.</li>
+     *   <li>{@code testScript}: comando de test declarado en scripts.</li>
+     * </ul>
+     * Ninguna ausencia de campo niega la existencia de una práctica.
      */
     public record EngineeringEvidence(
+            // --- Genéricos (multiplataforma) ---
+            int testFilesDetected,
+            List<String> testDirectories,
+            boolean testScriptDetected,
+            // --- Spring/Java-specific ---
             boolean springConfigurationDetected,
             int beanDefinitions,
             boolean constructorInjectionDetected,
-            int testFilesDetected
+            // --- Metadata de manifiesto (package.json, pom.xml name, etc.) ---
+            String projectName,
+            String projectDescription,
+            String mainEntry,
+            String testScript
     ) {}
 }

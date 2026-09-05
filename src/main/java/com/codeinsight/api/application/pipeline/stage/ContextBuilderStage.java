@@ -1,5 +1,6 @@
 package com.codeinsight.api.application.pipeline.stage;
 
+import com.codeinsight.api.application.ai.PromptProvider;
 import com.codeinsight.api.domain.model.AnalysisContext;
 import com.codeinsight.api.domain.model.ArchitectureEvidenceResult;
 import com.codeinsight.api.domain.model.ArchitectureEvidenceResult.EngineeringEvidence;
@@ -15,11 +16,16 @@ import org.springframework.stereotype.Component;
  *
  * Consolida todas las evidencias determinísticas recopiladas (Etapas 2 a 5) en un prompt
  * estructurado en formato Markdown optimizado para ser consumido por el motor de síntesis IA (Etapa 7).
- * Incluye directivas anti-alucinación, sección de evidencias de ingeniería (DI/tests),
- * relaciones inbound/outbound y reglas estrictas para las recomendaciones finales.
+ * Utiliza {@link PromptProvider} para cargar las plantillas de prompts versionadas fuera del código Java.
  */
 @Component
 public class ContextBuilderStage {
+
+    private final PromptProvider promptProvider;
+
+    public ContextBuilderStage(PromptProvider promptProvider) {
+        this.promptProvider = promptProvider;
+    }
 
     /**
      * Construye los prompts del sistema y usuario reuniendo las métricas y evidencias factuales.
@@ -37,22 +43,25 @@ public class ContextBuilderStage {
             ComponentAnalysisResult componentAnalysis,
             ArchitectureEvidenceResult architectureEvidence) {
 
-        String systemPrompt = """
-                Eres un Ingeniero de Software Senior y Arquitecto de Soluciones experto en Ingeniería Inversa de Software.
-                Analiza exclusivamente las evidencias determinísticas proporcionadas del repositorio para redactar un informe técnico profesional y riguroso.
-
-                Reglas estrictas de análisis:
-                - No inventes componentes, dependencias, vulnerabilidades, métricas ni tecnologías no presentes en las evidencias.
-                - Distingue claramente los hechos observados (rutas, archivos, estereotipos) de las inferencias arquitectónicas.
-                - Si la evidencia no permite concluir un aspecto específico, indícalo explícitamente como "No concluyente".
-                - No afirmes calidad interna, seguridad, complejidad ciclomática o cobertura de código sin evidencias explícitas.
-                - Toda inferencia arquitectónica debe citar textualmente las evidencias de rutas y componentes que la sustentan.
-                - PRINCIPIO CRÍTICO: La ausencia de una evidencia NO implica la ausencia de una práctica en el proyecto real.
-                  Solo puedes afirmar que algo no existe si la evidencia lo demuestra explícitamente.
-                """;
+        String systemPrompt = promptProvider.systemPrompt();
 
         StringBuilder userPromptBuilder = new StringBuilder();
         userPromptBuilder.append("# Radiografía de Ingeniería Inversa del Repositorio\n\n");
+
+        // 0. Metadata del Proyecto (extraída de manifiestos: package.json, etc.)
+        EngineeringEvidence engMeta = (architectureEvidence != null) ? architectureEvidence.getEngineeringEvidence() : null;
+        if (engMeta != null && (engMeta.projectName() != null || engMeta.projectDescription() != null || engMeta.mainEntry() != null)) {
+            userPromptBuilder.append("## 0. Metadata del Proyecto (extraída del manifiesto)\n");
+            if (engMeta.projectName() != null)
+                userPromptBuilder.append("- **Nombre del Proyecto**: ").append(engMeta.projectName()).append("\n");
+            if (engMeta.projectDescription() != null)
+                userPromptBuilder.append("- **Descripción Declarada**: ").append(engMeta.projectDescription()).append("\n");
+            if (engMeta.mainEntry() != null)
+                userPromptBuilder.append("- **Punto de Entrada Principal**: ").append(engMeta.mainEntry()).append("\n");
+            if (engMeta.testScript() != null)
+                userPromptBuilder.append("- **Script de Test**: `").append(engMeta.testScript()).append("`\n");
+            userPromptBuilder.append("\n");
+        }
 
         // 1. Ficha Técnica y Métricas Generales
         userPromptBuilder.append("## 1. Ficha Técnica y Métricas Generales\n");
@@ -130,50 +139,39 @@ public class ContextBuilderStage {
                 );
             }
 
-            // 4c. Evidencias de ingeniería detectadas
+            // 4c. Evidencias de ingeniería (stack-aware)
             EngineeringEvidence eng = architectureEvidence.getEngineeringEvidence();
             if (eng != null) {
                 userPromptBuilder.append("\n### 4c. Evidencias de Buenas Prácticas de Ingeniería\n");
                 userPromptBuilder.append("IMPORTANTE: Estas evidencias confirman prácticas presentes. ")
                         .append("La ausencia de una evidencia aquí NO implica que la práctica no exista.\n");
-                userPromptBuilder.append("- **Inyección de Dependencias Spring (@Configuration)**: ")
-                        .append(eng.springConfigurationDetected() ? "DETECTADA" : "No observada").append("\n");
-                userPromptBuilder.append("- **Definiciones @Bean encontradas**: ")
-                        .append(eng.beanDefinitions()).append("\n");
-                userPromptBuilder.append("- **Inyección por Constructor**: ")
-                        .append(eng.constructorInjectionDetected() ? "DETECTADA" : "No observada").append("\n");
-                userPromptBuilder.append("- **Archivos de Test (src/test/)**: ")
+
+                // Genérico: tests multiplataforma
+                userPromptBuilder.append("- **Archivos de Test Detectados (multiplataforma)**: ")
                         .append(eng.testFilesDetected()).append("\n");
+                if (!eng.testDirectories().isEmpty()) {
+                    userPromptBuilder.append("- **Directorios de Test Encontrados**: ")
+                            .append(eng.testDirectories()).append("\n");
+                }
+                if (eng.testScriptDetected()) {
+                    userPromptBuilder.append("- **Script de Test (package.json)**: `")
+                            .append(eng.testScript()).append("`\n");
+                }
+
+                // Spring/Java específico — solo mostrar si hay evidencia relevante
+                if (eng.springConfigurationDetected() || eng.beanDefinitions() > 0 || eng.constructorInjectionDetected()) {
+                    userPromptBuilder.append("- **Inyección de Dependencias Spring (@Configuration)**: ")
+                            .append(eng.springConfigurationDetected() ? "DETECTADA" : "No observada").append("\n");
+                    userPromptBuilder.append("- **Definiciones @Bean**: ").append(eng.beanDefinitions()).append("\n");
+                    userPromptBuilder.append("- **Inyección por Constructor**: ")
+                            .append(eng.constructorInjectionDetected() ? "DETECTADA" : "No observada").append("\n");
+                }
             }
         }
         userPromptBuilder.append("\n");
 
-        // 5. Directivas de Análisis para la IA (prompt endurecido)
-        userPromptBuilder.append("""
-                ## 5. Directivas para la Síntesis Arquitectónica (Ollama)
-                Con base EXCLUSIVAMENTE en la radiografía factual anterior, redacta el análisis en Markdown respondiendo a:
-
-                **1. Clasificación Arquitectónica:**
-                   Determina el estilo o patrón arquitectónico más probable. Incluye:
-                   - Estilo principal inferido
-                   - Nivel de confianza estimado (de 0.0 a 1.0)
-                   - Evidencias CONCRETAS de rutas y componentes que lo sustentan (cita textualmente)
-                   - Como máximo 2 estilos arquitectónicos alternativos, SOLO si existe evidencia concreta que los sustente.
-                     Para cada alternativa, cita esa evidencia. Si no hay evidencia suficiente, responde "No concluyente".
-                   - Aspectos no verificables con la evidencia disponible
-
-                **2. Organización de Capas:**
-                   Evalúa el desacoplamiento aparente según la distribución de componentes, paquetes y relaciones detectadas.
-
-                **3. Recomendaciones Técnicas:**
-                   Emite EXACTAMENTE 3 recomendaciones técnicas de alto impacto.
-                   Reglas obligatorias para cada recomendación:
-                   - Debe estar respaldada por una evidencia CONCRETA de las secciones anteriores.
-                   - NO recomiendes implementar tecnologías, prácticas o patrones cuya presencia ya esté confirmada en las evidencias (sección 4c).
-                   - La ausencia de una evidencia NO significa ausencia de la práctica; no especules sobre lo que no está en el reporte.
-                   - Si no puedes formular 3 recomendaciones basadas en evidencia concreta, indica "No concluyente" en lugar de inventar.
-                   - Devuelve exactamente 3 recomendaciones, no más, no menos.
-                """);
+        // 5. Directivas de Análisis para la IA (cargadas desde PromptProvider)
+        userPromptBuilder.append(promptProvider.analysisDirectives());
 
         String userPrompt = userPromptBuilder.toString();
         String formattedContextPrompt = systemPrompt.trim() + "\n\n" + userPrompt.trim();

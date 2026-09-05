@@ -9,7 +9,10 @@ import com.codeinsight.api.domain.model.FetchCodeRequest;
 import com.codeinsight.api.domain.model.ScannedFileMap;
 import com.codeinsight.api.domain.model.SourceType;
 import com.codeinsight.api.domain.model.TechnologyStack;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.core.io.DefaultResourceLoader;
+import com.codeinsight.api.infrastructure.adapter.out.prompt.ResourcePromptProvider;
 
 import java.util.List;
 import java.util.Map;
@@ -19,7 +22,15 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class ContextBuilderStageTest {
 
-    private final ContextBuilderStage stage = new ContextBuilderStage();
+    private ResourcePromptProvider promptProvider;
+    private ContextBuilderStage stage;
+
+    @BeforeEach
+    void setUp() {
+        promptProvider = new ResourcePromptProvider(new DefaultResourceLoader(), "v1");
+        promptProvider.init();
+        stage = new ContextBuilderStage(promptProvider);
+    }
 
     @Test
     void buildContext_shouldAssembleRichMarkdownPromptCorrectly() {

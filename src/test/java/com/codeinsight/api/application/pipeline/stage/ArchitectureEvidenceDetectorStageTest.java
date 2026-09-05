@@ -51,4 +51,50 @@ class ArchitectureEvidenceDetectorStageTest {
         assertEquals(1, result.getPackageComponentDistribution().get("infrastructure"));
         assertTrue(result.getEvidenceNotes().stream().anyMatch(note -> note.contains("Palabras clave de arquitectura encontradas")));
     }
+
+    @Test
+    void detect_shouldExtractNodeProjectAndTestingEvidence(@TempDir Path tempDir) throws java.io.IOException {
+        Path packageJsonPath = tempDir.resolve("package.json");
+        String packageJsonContent = """
+                {
+                  "name": "demo-service",
+                  "description": "Microservicio de pruebas",
+                  "main": "index.js",
+                  "scripts": {
+                    "test": "jest"
+                  }
+                }
+                """;
+        java.nio.file.Files.writeString(packageJsonPath, packageJsonContent);
+
+        Path testDirPath = tempDir.resolve("tests");
+        java.nio.file.Files.createDirectories(testDirPath);
+        Path testFilePath = testDirPath.resolve("app.test.js");
+        java.nio.file.Files.writeString(testFilePath, "test('should work', () => {});");
+
+        List<String> files = List.of("package.json", "tests/app.test.js");
+        ScannedFileMap scannedFiles = ScannedFileMap.builder()
+                .rootPath(tempDir)
+                .relativeFilePaths(files)
+                .build();
+
+        ComponentAnalysisResult componentAnalysis = ComponentAnalysisResult.builder()
+                .totalComponents(0)
+                .components(List.of())
+                .build();
+
+        ArchitectureEvidenceResult result = stage.detect(scannedFiles, componentAnalysis);
+
+        assertNotNull(result);
+        assertNotNull(result.getEngineeringEvidence());
+
+        var eng = result.getEngineeringEvidence();
+        assertEquals("demo-service", eng.projectName());
+        assertEquals("Microservicio de pruebas", eng.projectDescription());
+        assertEquals("index.js", eng.mainEntry());
+        assertEquals("jest", eng.testScript());
+        assertTrue(eng.testScriptDetected());
+        assertTrue(eng.testFilesDetected() > 0);
+        assertTrue(eng.testDirectories().contains("tests"));
+    }
 }

@@ -69,7 +69,9 @@ class AnalyzeRepositoryServiceTest {
         TechnologyDetectorStage techStage = new TechnologyDetectorStage();
         ComponentDetectorStage componentStage = new ComponentDetectorStage();
         ArchitectureEvidenceDetectorStage archStage = new ArchitectureEvidenceDetectorStage();
-        ContextBuilderStage contextStage = new ContextBuilderStage();
+        com.codeinsight.api.application.ai.PromptProvider promptProvider = new com.codeinsight.api.infrastructure.adapter.out.prompt.ResourcePromptProvider(new org.springframework.core.io.DefaultResourceLoader(), "v1");
+        ((com.codeinsight.api.infrastructure.adapter.out.prompt.ResourcePromptProvider) promptProvider).init();
+        ContextBuilderStage contextStage = new ContextBuilderStage(promptProvider);
         ArchitectureSynthesisPort mockSynthesisPort = (sys, user) -> "Mocked AI Architecture Synthesis Report";
         OllamaAnalysisStage ollamaStage = new OllamaAnalysisStage(mockSynthesisPort);
 
