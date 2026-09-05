@@ -1,57 +1,80 @@
 # Code Insight API (`code-insight-api`)
 
-Backend desarrollado con **Spring Boot 3 (Java 17)** que utiliza **Arquitectura Hexagonal (Ports & Adapters)** y el **Patrón de Diseño Strategy** para ofrecer métricas e inspección de código a través de una API REST lista para integrarse con un Frontend.
+Backend desarrollado en **Java 17** y **Spring Boot 3** que implementa **Arquitectura Hexagonal (Puertos y Adaptadores)** y un **Pipeline de Ingeniería Inversa de 6 Etapas Determinísticas** para el análisis estructural y arquitectónico de proyectos de software a partir de repositorios GitHub o archivos ZIP.
 
 ---
 
-## 🏛️ Arquitectura del Proyecto
+## 🏛️ Arquitectura Hexagonal y Estructura del Proyecto
 
-El proyecto está diseñado bajo los principios de la Arquitectura Hexagonal para desacoplar el dominio del negocio de la infraestructura y frameworks externos.
+El proyecto está diseñado bajo una estricta Arquitectura Hexagonal para desacoplar el dominio del negocio de los marcos de trabajo (frameworks) e infraestructura externa:
 
-```
+```text
 com.codeinsight.api
 ├── CodeInsightApplication.java
 │
-├── domain                              # Dominio puro (Java estándar, sin Spring)
-│   ├── model                           # Entidades y objetos de valor (AnalysisReport, CodeAnalysisRequest)
-│   ├── exception                       # Excepciones del dominio
-│   └── strategy                        # PATRÓN STRATEGY
-│       ├── CodeAnalysisStrategy.java   # Interfaz de la Estrategia
-│       ├── JavaCodeAnalysisStrategy.java
-│       ├── PythonCodeAnalysisStrategy.java
-│       └── CodeAnalysisStrategyFactory.java # Context/Factory para selección dinámica
+├── domain                                      # Dominio Puro (Java Estándar, sin Spring)
+│   ├── exception                               # Excepciones personalizadas del dominio
+│   │   ├── DomainException.java
+│   │   ├── InvalidRepositoryException.java
+│   │   ├── RepositoryFetchException.java
+│   │   ├── RepositoryScanningException.java
+│   │   └── UnsupportedSourceTypeException.java
+│   └── model                                   # Modelos del dominio y registros de datos
+│       ├── AnalysisContext.java
+│       ├── ArchitectureEvidenceResult.java
+│       ├── ComponentAnalysisResult.java
+│       ├── ComponentType.java
+│       ├── DetectedComponent.java
+│       ├── FetchCodeRequest.java
+│       ├── RepositoryAnalysisResult.java
+│       ├── ScannedFileMap.java
+│       ├── SourceType.java
+│       └── TechnologyStack.java
 │
-├── application                         # Casos de uso y Puertos
+├── application                                 # Casos de Uso, Pipeline y Puertos
+│   ├── model
+│   │   └── TempCodeDirectory.java              # Wrapper efímero AutoCloseable de workspace
+│   ├── pipeline/stage                          # Etapas del Pipeline de Análisis
+│   │   ├── RepositoryLoaderStage.java          # Etapa 1: Carga efímera
+│   │   ├── FileScannerStage.java               # Etapa 2: Escaneo de archivos y métricas
+│   │   ├── TechnologyDetectorStage.java        # Etapa 3: Detección de stack y manifiestos
+│   │   ├── ComponentDetectorStage.java         # Etapa 4: Identificación de componentes
+│   │   ├── ArchitectureEvidenceDetectorStage.java # Etapa 5: Recopilación de evidencias
+│   │   └── ContextBuilderStage.java            # Etapa 6: Ensamblado del contexto LLM
 │   ├── port
-│   │   ├── in                          # Input Ports (Casos de uso para adaptadores primarios como REST)
-│   │   │   └── AnalyzeCodeUseCase.java
-│   │   └── out                         # Output Ports (Interfaces para persistencia, external APIs)
-│   │       └── SaveAnalysisReportPort.java
-│   └── service                         # Implementación de Casos de Uso
-│       └── AnalyzeCodeService.java
+│   │   ├── in
+│   │   │   └── AnalyzeRepositoryUseCase.java   # Input Port
+│   │   └── out
+│   │       └── CodeFetcherPort.java            # Output Port para cargadores de código
+│   └── service
+│       └── AnalyzeRepositoryService.java       # Orquestador del pipeline
 │
-└── infrastructure                      # Adaptadores e Infraestructura (Spring Boot)
+└── infrastructure                              # Adaptadores e Infraestructura (Spring Boot)
     ├── adapter
-    │   ├── in/rest                     # Adaptador REST (Driving Adapter)
-    │   │   ├── CodeAnalysisController.java
-    │   │   ├── dto/                    # AnalysisRequestDto, AnalysisResponseDto
-    │   │   ├── mapper/                 # AnalysisRestMapper
-    │   │   └── exception/              # GlobalExceptionHandler
-    │   └── out/persistence             # Adaptador de salida (Driven Adapter)
-    │       └── InMemoryReportPersistenceAdapter.java
-    └── config                          # Configuración de Beans de Spring y Swagger
-        └── BeanConfiguration.java
+    │   ├── in/rest                             # Driving Adapter (REST Controllers & DTOs)
+    │   │   ├── AnalyzeRepositoryController.java
+    │   │   ├── dto/
+    │   │   ├── mapper/
+    │   │   └── exception/                      # GlobalExceptionHandler (RFC 7807)
+    │   └── out/fetcher                         # Driven Adapters (Git & ZIP Fetchers)
+    │       ├── GitRepositoryFetcherAdapter.java
+    │       └── ZipExtractorFetcherAdapter.java
+    └── config
+        └── BeanConfiguration.java              # Configuración de Beans de Spring
 ```
 
 ---
 
-## 💡 Patrón Strategy Aplicado
+## ⚙️ Pipeline de Análisis de 6 Etapas
 
-El **Patrón Strategy** permite extender dinámicamente nuevos lenguajes o motores de análisis sin alterar la lógica existente (Principio Open/Closed):
+El servicio `AnalyzeRepositoryService` ejecuta secuencialmente un pipeline determinístico libre de alucinaciones:
 
-1. **`CodeAnalysisStrategy`**: Define el contrato genérico para cualquier algoritmo de análisis.
-2. **`JavaCodeAnalysisStrategy` / `PythonCodeAnalysisStrategy`**: Implementaciones concretas para cada lenguaje.
-3. **`CodeAnalysisStrategyFactory`**: Resuelve dinámicamente la estrategia adecuada según la propiedad `type` del request (`JAVA`, `PYTHON`, etc.).
+1. **`RepositoryLoaderStage`**: Adquiere el código fuente utilizando el adaptador adecuado (`GitRepositoryFetcherAdapter` o `ZipExtractorFetcherAdapter`) y crea una carpeta efímera (`TempCodeDirectory`) que garantiza su autodestrucción en disco.
+2. **`FileScannerStage`**: Recorre efímeramente el árbol de directorios omitiendo carpetas de compilación o ruido (`.git`, `node_modules`, `target`, etc.) y compila métricas de archivos y manifiestos.
+3. **`TechnologyDetectorStage`**: Examina manifiestos (`pom.xml`, `build.gradle`, `package.json`, `requirements.txt`) para identificar el lenguaje principal, framework, gestor de dependencias y bibliotecas clave.
+4. **`ComponentDetectorStage`**: Analiza clases y anotaciones Java/Spring (`@RestController`, `@Service`, `@Repository`, `@Component`, `@Configuration`) para catalogar los componentes por estereotipo.
+5. **`ArchitectureEvidenceDetectorStage`**: Analiza la profundidad de paquetes, distribución de clases y señales léxicas estructurales (como `domain`, `application`, `infrastructure`, `port`, `adapter`) para calcular el nivel de desacoplamiento aparente.
+6. **`ContextBuilderStage`**: Construye el prompt estructurado en Markdown con las evidencias determinísticas (Ficha Técnica, Stack, Componentes, Evidencias Estructurales y Directivas de Síntesis) listo para ser consumido por el motor de IA (Ollama).
 
 ---
 
@@ -61,7 +84,7 @@ El **Patrón Strategy** permite extender dinámicamente nuevos lenguajes o motor
 - Java 17+
 - Apache Maven 3.8+
 
-### Compilación y Tests
+### Compilación y Suite de Pruebas
 ```bash
 mvn clean test
 ```
@@ -74,46 +97,52 @@ El servidor iniciará en: `http://localhost:8080`
 
 ---
 
-## 📡 API REST - Integración con Frontend
+## 📡 API REST
 
-### 1. Analizar Código (`POST /api/v1/analysis`)
+### 1. Analizar Repositorio de GitHub (`POST /api/v1/analyses/github`)
 
 **Request Payload:**
 ```json
 {
-  "projectKey": "frontend-dashboard",
-  "sourceCode": "public class UserNotificationService {\n  public void sendEmail() {\n    System.out.println(\"Sending email...\");\n  }\n}",
-  "type": "JAVA",
-  "metadata": {
-    "author": "dev-user"
-  }
+  "projectKey": "code-insight-api",
+  "repoUrl": "https://github.com/cfabianmsanchez/code-insight-api"
 }
 ```
 
-**Response Payload (`201 Created`):**
+**Response Payload (`200 OK`):**
 ```json
 {
-  "id": "c1f70d2c-88e4-4d8a-9876-efb0451a998e",
-  "projectKey": "frontend-dashboard",
-  "analysisType": "JAVA",
-  "linesOfCode": 5,
-  "cyclomaticComplexity": 2,
-  "estimatedBugs": 0,
-  "securityVulnerabilities": 1,
-  "summary": "Java Code Analysis completed successfully.",
-  "recommendations": [
-    "Consider using SLF4J logger instead of System.out.println",
-    "Ensure classes have proper unit test coverage",
-    "Keep method length under 30 lines of code"
-  ],
-  "metrics": {
-    "classesDetected": 1,
-    "methodsDetected": 1,
-    "languageVersion": "Java 17+"
+  "projectKey": "code-insight-api",
+  "sourceType": "GITHUB_REPO",
+  "totalFiles": 34,
+  "totalDirectories": 15,
+  "technologyStack": {
+    "mainLanguage": "Java",
+    "mainFramework": "Spring Boot",
+    "buildTool": "Maven",
+    "databasesDetected": [],
+    "keyLibraries": [
+      "OpenAPI / Swagger",
+      "Lombok"
+    ]
   },
-  "timestamp": "2026-09-04T03:25:00"
+  "componentAnalysis": {
+    "totalComponents": 8,
+    "componentCounts": {
+      "CONTROLLER": 1,
+      "SERVICE": 1,
+      "COMPONENT": 6
+    }
+  },
+  "timestamp": "2026-09-05T11:15:00"
 }
 ```
+
+### 2. Analizar Archivo ZIP (`POST /api/v1/analyses/zip`)
+
+**Form Data:**
+- `file`: Archivo `.zip` con el proyecto de código fuente.
+- `projectKey` (opcional): Identificador del proyecto.
 
 ---
 

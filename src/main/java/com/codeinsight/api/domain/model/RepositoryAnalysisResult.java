@@ -6,7 +6,7 @@ import java.util.Map;
 /**
  * Modelo de Dominio: Resultado Integral del Análisis del Repositorio.
  * 
- * Objeto inmutable que consolida las métricas y hallazgos de todas las etapas del pipeline.
+ * Objeto que consolida los resultados y métricas generados por las etapas del pipeline.
  */
 public class RepositoryAnalysisResult {
     /** Clave o identificador asignado al proyecto. */

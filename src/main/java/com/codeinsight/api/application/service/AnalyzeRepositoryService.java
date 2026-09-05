@@ -59,7 +59,7 @@ public class AnalyzeRepositoryService implements AnalyzeRepositoryUseCase {
      */
     @Override
     public RepositoryAnalysisResult analyzeRepository(FetchCodeRequest request) {
-        // El bloque try-with-resources envuelve el pipeline completo y destruye la carpeta efímera al finalizar la Etapa N
+        // Garantiza la eliminación del workspace temporal al finalizar el pipeline, incluso ante excepciones.
         try (TempCodeDirectory repository = repositoryLoader.loadRepository(request)) {
 
             // Etapa 2: File Scanner (Escaneo efímero en memoria)

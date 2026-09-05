@@ -6,6 +6,7 @@ import com.codeinsight.api.domain.exception.RepositoryFetchException;
 import com.codeinsight.api.domain.model.FetchCodeRequest;
 import com.codeinsight.api.domain.model.SourceType;
 import org.springframework.stereotype.Component;
+import org.springframework.util.FileSystemUtils;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -36,16 +37,22 @@ public class ZipExtractorFetcherAdapter implements CodeFetcherPort {
 
     /**
      * Extrae el contenido del archivo ZIP en una carpeta temporal efímera.
+     * Si la extracción falla, elimina inmediatamente la carpeta temporal para evitar fugas en disco.
      *
      * @throws RepositoryFetchException Si falla la descompresión o la creación de carpetas.
      */
     @Override
     public TempCodeDirectory fetchCode(FetchCodeRequest request) {
+        Path tempDir = null;
         try {
-            Path tempDir = Files.createTempDirectory("code-insight-zip-");
+            tempDir = Files.createTempDirectory("code-insight-zip-");
             extractZipStream(request.getZipInputStream(), tempDir);
             return new TempCodeDirectory(tempDir, SourceType.ZIP_FILE);
-        } catch (IOException e) {
+        } catch (Exception e) {
+            deleteQuietly(tempDir);
+            if (e instanceof RepositoryFetchException rfe) {
+                throw rfe;
+            }
             throw new RepositoryFetchException("Failed to extract ZIP file into temporary directory. Details: " + e.getMessage(), e);
         }
     }
@@ -101,4 +108,18 @@ public class ZipExtractorFetcherAdapter implements CodeFetcherPort {
         }
         return destFile;
     }
+
+    /**
+     * Elimina el directorio temporal de forma silenciosa en caso de error durante la descompresión.
+     */
+    private void deleteQuietly(Path path) {
+        if (path != null && Files.exists(path)) {
+            try {
+                FileSystemUtils.deleteRecursively(path);
+            } catch (Exception ignored) {
+                // Silencioso para no opacar la excepción original
+            }
+        }
+    }
 }
+
