@@ -1,5 +1,8 @@
 package com.codeinsight.api.domain.model;
 
+/**
+ * Enumeración que define los estereotipos arquitectónicos de componentes soportados.
+ */
 public enum ComponentType {
     CONTROLLER("Controllers / Endpoints"),
     SERVICE("Services / Use Cases"),
@@ -10,6 +13,7 @@ public enum ComponentType {
     FRONTEND_COMPONENT("Frontend Components"),
     FRONTEND_SERVICE("Frontend Services / Injectables");
 
+    /** Descripción legible del tipo de componente. */
     private final String description;
 
     ComponentType(String description) {

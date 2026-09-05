@@ -2,9 +2,18 @@ package com.codeinsight.api.domain.model;
 
 import java.util.Objects;
 
+/**
+ * Modelo de Dominio: Contexto de Análisis para el Motor de IA.
+ * 
+ * Almacena los prompts estructurados generados en la Etapa 6 (systemPrompt, userPrompt y formattedContextPrompt)
+ * listos para ser consumidos por el modelo de IA.
+ */
 public class AnalysisContext {
+    /** Prompt del sistema con rol y directivas anti-alucinaciones. */
     private final String systemPrompt;
+    /** Prompt del usuario con la radiografía factual del proyecto en Markdown. */
     private final String userPrompt;
+    /** Prompt consolidado optimizado listo para enviar al LLM. */
     private final String formattedContextPrompt;
 
     public AnalysisContext(String systemPrompt, String userPrompt, String formattedContextPrompt) {

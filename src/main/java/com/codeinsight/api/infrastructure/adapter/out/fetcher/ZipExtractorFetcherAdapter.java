@@ -16,15 +16,29 @@ import java.nio.file.Path;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
+/**
+ * Adaptador de Salida (Outbound Adapter): Cargador de Archivos ZIP.
+ * 
+ * Implementa {@link CodeFetcherPort} descomprimiendo el contenido de un stream de archivo ZIP
+ * en una carpeta temporal efímera, omitiendo archivos y carpetas de ruido de macOS (__MACOSX, ._).
+ */
 @Component
 public class ZipExtractorFetcherAdapter implements CodeFetcherPort {
 
+    /**
+     * Comprueba si la solicitud incluye un InputStream válido de archivo ZIP.
+     */
     @Override
     public boolean supports(FetchCodeRequest request) {
         return SourceType.ZIP_FILE.equals(request.getSourceType())
                 && request.getZipInputStream() != null;
     }
 
+    /**
+     * Extrae el contenido del archivo ZIP en una carpeta temporal efímera.
+     *
+     * @throws RepositoryFetchException Si falla la descompresión o la creación de carpetas.
+     */
     @Override
     public TempCodeDirectory fetchCode(FetchCodeRequest request) {
         try {
@@ -36,6 +50,9 @@ public class ZipExtractorFetcherAdapter implements CodeFetcherPort {
         }
     }
 
+    /**
+     * Recorre el archivo ZIP y escribe los directorios y archivos en el destino temporal.
+     */
     private void extractZipStream(InputStream inputStream, Path targetDir) throws IOException {
         byte[] buffer = new byte[8192];
         try (ZipInputStream zis = new ZipInputStream(inputStream)) {
@@ -71,6 +88,9 @@ public class ZipExtractorFetcherAdapter implements CodeFetcherPort {
         }
     }
 
+    /**
+     * Valida la ruta de destino para prevenir vulnerabilidades de descompresión (Zip Slip).
+     */
     private File newFile(File destinationDir, ZipEntry zipEntry) throws IOException {
         File destFile = new File(destinationDir, zipEntry.getName());
         String destDirPath = destinationDir.getCanonicalPath();

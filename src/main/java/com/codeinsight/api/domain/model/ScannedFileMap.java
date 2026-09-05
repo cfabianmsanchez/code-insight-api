@@ -4,12 +4,24 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Modelo de Dominio: Mapa de Archivos Escaneados (Etapa 2).
+ * 
+ * Contiene el resultado del escaneo del directorio temporal efímero:
+ * totales de archivos/carpetas, distribución por extensión, rutas relativas y manifiestos del proyecto.
+ */
 public class ScannedFileMap {
+    /** Ruta raíz del directorio temporal analizado. */
     private Path rootPath;
+    /** Conteo de archivos regulares encontrados. */
     private int totalFiles;
+    /** Conteo de directorios escaneados. */
     private int totalDirectories;
+    /** Mapa de frecuencias de extensiones (ejemplo: .java -> 35). */
     private Map<String, Integer> extensionCounts;
+    /** Lista de rutas relativas a la raíz del repositorio. */
     private List<String> relativeFilePaths;
+    /** Lista de rutas a archivos manifiesto (pom.xml, package.json, etc.). */
     private List<Path> manifestFiles;
 
     public ScannedFileMap() {}

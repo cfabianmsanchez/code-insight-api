@@ -16,11 +16,24 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+/**
+ * Etapa 3 del Pipeline: Technology Detector.
+ * 
+ * Analiza de forma determinista los archivos de manifiesto (pom.xml, package.json, etc.)
+ * y el conteo de extensiones para identificar el lenguaje principal, framework, herramienta de build,
+ * bases de datos y librerías clave del proyecto.
+ */
 @Component
 public class TechnologyDetectorStage {
 
     private static final Logger log = LoggerFactory.getLogger(TechnologyDetectorStage.class);
 
+    /**
+     * Examina las extensiones de archivos y los archivos de manifiesto del proyecto para construir el stack tecnológico.
+     *
+     * @param scannedMap Resultado del escaneo de archivos de la Etapa 2.
+     * @return {@link TechnologyStack} con el lenguaje, framework, motor de build y librerías detectadas.
+     */
     public TechnologyStack detect(ScannedFileMap scannedMap) {
         if (scannedMap == null) {
             throw new InvalidRepositoryException("ScannedFileMap cannot be null");
@@ -118,6 +131,9 @@ public class TechnologyDetectorStage {
                 .build();
     }
 
+    /**
+     * Determina el lenguaje principal del proyecto según la frecuencia dominante de extensiones de archivo.
+     */
     private String determineMainLanguage(Map<String, Integer> extCounts) {
         if (extCounts == null || extCounts.isEmpty()) {
             return "Java / Multi-lenguaje";
@@ -149,6 +165,9 @@ public class TechnologyDetectorStage {
         return "Java / Multi-lenguaje";
     }
 
+    /**
+     * Lee el contenido completo de un archivo de manifiesto en minúsculas de forma segura.
+     */
     private String readContent(Path path) {
         try {
             return Files.readString(path).toLowerCase();

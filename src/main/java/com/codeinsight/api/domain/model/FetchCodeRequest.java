@@ -2,10 +2,20 @@ package com.codeinsight.api.domain.model;
 
 import java.io.InputStream;
 
+/**
+ * Modelo de Dominio: Solicitud de Adquisición de Código.
+ * 
+ * Contiene los parámetros necesarios para adquirir el repositorio fuente
+ * (projectKey, tipo de fuente, URL de Git o stream de archivo ZIP).
+ */
 public class FetchCodeRequest {
+    /** Clave o identificador asignado al proyecto. */
     private String projectKey;
+    /** Tipo de fuente del código (GITHUB_REPO o ZIP_FILE). */
     private SourceType sourceType;
+    /** URL pública del repositorio de GitHub (si aplica). */
     private String repoUrl;
+    /** Stream del archivo ZIP cargado (si aplica). */
     private InputStream zipInputStream;
 
     public FetchCodeRequest() {}

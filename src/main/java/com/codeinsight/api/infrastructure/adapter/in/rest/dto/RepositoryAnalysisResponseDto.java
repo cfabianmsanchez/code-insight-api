@@ -8,16 +8,29 @@ import com.codeinsight.api.domain.model.TechnologyStack;
 import java.time.LocalDateTime;
 import java.util.Map;
 
+/**
+ * DTO de respuesta que contiene el resultado consolidado del análisis de ingeniería inversa.
+ */
 public class RepositoryAnalysisResponseDto {
+    /** Identificador del proyecto analizado. */
     private String projectKey;
+    /** Tipo de fuente procesada (GITHUB_REPO o ZIP_FILE). */
     private String sourceType;
+    /** Conteo total de archivos escaneados. */
     private int totalFiles;
+    /** Conteo total de directorios. */
     private int totalDirectories;
+    /** Stack tecnológico detectado. */
     private TechnologyStack technologyStack;
+    /** Análisis de componentes y estereotipos. */
     private ComponentAnalysisResult componentAnalysis;
+    /** Evidencias y señales de arquitectura. */
     private ArchitectureEvidenceResult architectureEvidence;
+    /** Contexto de prompts estructurados para el motor de IA. */
     private AnalysisContext analysisContext;
+    /** Distribución de conteo por extensión de archivo. */
     private Map<String, Integer> extensionCounts;
+    /** Marca de tiempo de conclusión del análisis. */
     private LocalDateTime timestamp;
 
     public RepositoryAnalysisResponseDto() {}

@@ -3,16 +3,31 @@ package com.codeinsight.api.domain.model;
 import java.time.LocalDateTime;
 import java.util.Map;
 
+/**
+ * Modelo de Dominio: Resultado Integral del Análisis del Repositorio.
+ * 
+ * Objeto inmutable que consolida las métricas y hallazgos de todas las etapas del pipeline.
+ */
 public class RepositoryAnalysisResult {
+    /** Clave o identificador asignado al proyecto. */
     private String projectKey;
+    /** Tipo de fuente procesada (GITHUB_REPO o ZIP_FILE). */
     private SourceType sourceType;
+    /** Número total de archivos escaneados. */
     private int totalFiles;
+    /** Número total de directorios escaneados. */
     private int totalDirectories;
+    /** Stack tecnológico identificado. */
     private TechnologyStack technologyStack;
+    /** Análisis de componentes y estereotipos. */
     private ComponentAnalysisResult componentAnalysis;
+    /** Evidencias y señales de arquitectura. */
     private ArchitectureEvidenceResult architectureEvidence;
+    /** Contexto de prompts estructurados para el LLM. */
     private AnalysisContext analysisContext;
+    /** Conteo por extensión de archivo. */
     private Map<String, Integer> extensionCounts;
+    /** Marca de tiempo de realización del análisis. */
     private LocalDateTime timestamp;
 
     public RepositoryAnalysisResult() {}

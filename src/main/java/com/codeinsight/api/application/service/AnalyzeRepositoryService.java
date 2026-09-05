@@ -18,6 +18,13 @@ import com.codeinsight.api.domain.model.TechnologyStack;
 
 import java.time.LocalDateTime;
 
+/**
+ * Servicio de Aplicación para el Análisis de Repositorios.
+ * 
+ * Implementa el caso de uso {@link AnalyzeRepositoryUseCase} y orquesta la ejecución
+ * secuencial de todas las etapas del pipeline de ingeniería inversa.
+ * Garantiza la limpieza automática del directorio temporal al concluir la ejecución.
+ */
 public class AnalyzeRepositoryService implements AnalyzeRepositoryUseCase {
 
     private final RepositoryLoaderStage repositoryLoader;
@@ -27,6 +34,9 @@ public class AnalyzeRepositoryService implements AnalyzeRepositoryUseCase {
     private final ArchitectureEvidenceDetectorStage architectureEvidenceDetector;
     private final ContextBuilderStage contextBuilder;
 
+    /**
+     * Crea una nueva instancia del servicio inyectando todas las etapas del pipeline.
+     */
     public AnalyzeRepositoryService(RepositoryLoaderStage repositoryLoader,
                                    FileScannerStage fileScanner,
                                    TechnologyDetectorStage technologyDetector,
@@ -41,6 +51,12 @@ public class AnalyzeRepositoryService implements AnalyzeRepositoryUseCase {
         this.contextBuilder = contextBuilder;
     }
 
+    /**
+     * Orquesta secuencialmente las etapas del pipeline (Carga, Escaneo, Stack, Componentes, Evidencias y Contexto).
+     *
+     * @param request Solicitud con los datos de acceso al código fuente.
+     * @return {@link RepositoryAnalysisResult} con la radiografía completa consolidada.
+     */
     @Override
     public RepositoryAnalysisResult analyzeRepository(FetchCodeRequest request) {
         // El bloque try-with-resources envuelve el pipeline completo y destruye la carpeta efímera al finalizar la Etapa N

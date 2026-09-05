@@ -11,9 +11,25 @@ import org.springframework.stereotype.Component;
 
 import java.util.Map;
 
+/**
+ * Etapa 6 del Pipeline: Context Builder.
+ * 
+ * Consolida todas las evidencias determinísticas recopiladas (Etapas 2 a 5) en un prompt
+ * estructurado en formato Markdown optimizado para ser consumido por el motor de síntesis IA (Etapa 7).
+ */
 @Component
 public class ContextBuilderStage {
 
+    /**
+     * Construye los prompts del sistema y usuario reuniendo las métricas y evidencias factuales.
+     *
+     * @param request              Solicitud original de análisis.
+     * @param scannedFiles         Mapa de archivos escaneados.
+     * @param techStack            Stack tecnológico detectado.
+     * @param componentAnalysis    Análisis de componentes.
+     * @param architectureEvidence Evidencias estructurales de arquitectura.
+     * @return {@link AnalysisContext} con systemPrompt, userPrompt y formattedContextPrompt.
+     */
     public AnalysisContext buildContext(FetchCodeRequest request,
             ScannedFileMap scannedFiles,
             TechnologyStack techStack,

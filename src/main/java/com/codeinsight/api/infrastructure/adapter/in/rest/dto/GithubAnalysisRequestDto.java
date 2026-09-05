@@ -2,11 +2,16 @@ package com.codeinsight.api.infrastructure.adapter.in.rest.dto;
 
 import jakarta.validation.constraints.NotBlank;
 
+/**
+ * DTO de entrada para la solicitud de análisis de repositorios de GitHub via REST.
+ */
 public class GithubAnalysisRequestDto {
 
+    /** Identificador único asignado al proyecto. */
     @NotBlank(message = "projectKey is required")
     private String projectKey;
 
+    /** URL del repositorio público de GitHub a clonar. */
     @NotBlank(message = "repoUrl is required (e.g. https://github.com/user/repo)")
     private String repoUrl;
 

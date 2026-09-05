@@ -17,19 +17,33 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+/**
+ * Etapa 2 del Pipeline: File Scanner.
+ * 
+ * Recorre el árbol de directorios efímero, filtra carpetas de construido/ruido (.git, target, etc.)
+ * y compila métricas de archivos, extensiones y manifiestos clave del proyecto.
+ */
 @Component
 public class FileScannerStage {
 
+    /** Carpetas de compilación, control de versiones y entornos virtuales que deben ser ignoradas. */
     private static final Set<String> IGNORED_DIRECTORIES = Set.of(
             ".git", "node_modules", "target", "build", ".gradle",
             ".idea", ".vscode", "dist", "bin", ".mvn",
             "venv", "__pycache__", "coverage", "__MACOSX");
 
+    /** Nombres de archivos de manifiesto relevantes para la detección de dependencias y frameworks. */
     private static final Set<String> MANIFEST_FILENAMES = Set.of(
             "pom.xml", "build.gradle", "build.gradle.kts", "package.json",
             "requirements.txt", "pipfile", "pyproject.toml", "dockerfile",
             "docker-compose.yml", "docker-compose.yaml", "application.yml", "application.properties");
 
+    /**
+     * Escanea recursivamente el directorio raíz indicado omitiendo archivos y carpetas de ruido.
+     *
+     * @param rootPath Ruta raíz del directorio a escanear.
+     * @return {@link ScannedFileMap} con el mapa de archivos escaneados, totales y conteo de extensiones.
+     */
     public ScannedFileMap scan(Path rootPath) {
         if (rootPath == null || !Files.exists(rootPath)) {
             throw new InvalidRepositoryException("Root path for file scanning must exist");
@@ -95,6 +109,9 @@ public class FileScannerStage {
                 .build();
     }
 
+    /**
+     * Extrae la extensión en minúsculas de un nombre de archivo (ejemplo: ".java").
+     */
     private String extractExtension(String fileName) {
         int dotIndex = fileName.lastIndexOf('.');
         if (dotIndex > 0 && dotIndex < fileName.length() - 1) {

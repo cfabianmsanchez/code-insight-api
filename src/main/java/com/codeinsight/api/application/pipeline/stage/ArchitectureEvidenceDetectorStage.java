@@ -19,12 +19,11 @@ import java.util.TreeSet;
  * Detector de Evidencias Arquitectónicas.
  * 
  * Analiza la estructura de carpetas y nombres de paquetes del proyecto para
- * recopilar
- * evidencias objetivas y señales estructurales (palabras clave como 'domain',
- * 'adapter',
- * 'port', profundidad de rutas y distribución de componentes por capa), sin
- * emitir
- * conclusiones ni clasificaciones rígidas.
+ * recopilar evidencias objetivas y señales estructurales (palabras clave como
+ * 'domain',
+ * 'adapter', 'port', profundidad de rutas y distribución de componentes por
+ * capa), sin
+ * emitir conclusiones ni clasificaciones rígidas.
  */
 @Component
 public class ArchitectureEvidenceDetectorStage {

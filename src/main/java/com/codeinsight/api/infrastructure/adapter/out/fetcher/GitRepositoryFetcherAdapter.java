@@ -13,9 +13,18 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
+/**
+ * Adaptador de Salida (Outbound Adapter): Cargador de Repositorios Git.
+ * 
+ * Implementa {@link CodeFetcherPort} utilizando JGit para clonar repositorios públicos
+ * de GitHub en directorios temporales efímeros (con profundidad 1).
+ */
 @Component
 public class GitRepositoryFetcherAdapter implements CodeFetcherPort {
 
+    /**
+     * Comprueba si la solicitud corresponde a una URL válida de repositorio GitHub.
+     */
     @Override
     public boolean supports(FetchCodeRequest request) {
         return SourceType.GITHUB_REPO.equals(request.getSourceType())
@@ -23,6 +32,11 @@ public class GitRepositoryFetcherAdapter implements CodeFetcherPort {
                 && !request.getRepoUrl().isBlank();
     }
 
+    /**
+     * Clona efímeramente el repositorio de GitHub en una carpeta temporal con profundidad 1.
+     *
+     * @throws RepositoryFetchException Si la clonación falla por problemas de red o URL inválida.
+     */
     @Override
     public TempCodeDirectory fetchCode(FetchCodeRequest request) {
         try {

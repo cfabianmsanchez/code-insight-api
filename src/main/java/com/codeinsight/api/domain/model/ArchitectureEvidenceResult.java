@@ -4,12 +4,24 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Modelo de Dominio: Resultado de Evidencias Arquitectónicas (Etapa 5).
+ * 
+ * Contiene los hallazgos factuales recolectados de la estructura del proyecto (rutas, palabras clave,
+ * profundidad máxima y distribución de componentes por paquetes).
+ */
 public class ArchitectureEvidenceResult {
+    /** Lista de rutas de directorios estructurales identificadas. */
     private final List<String> structuralPaths;
+    /** Lista de palabras clave de arquitectura encontradas en las rutas (ej. domain, adapter). */
     private final List<String> detectedKeywords;
+    /** Distribución de componentes por paquete o capa principal. */
     private final Map<String, Integer> packageComponentDistribution;
+    /** Profundidad máxima en segmentos de directorio alcanzada. */
     private final int maxPathDepth;
+    /** Cantidad total de rutas estructurales distintas. */
     private final int totalStructuralPaths;
+    /** Notas y observaciones factuales generadas sobre la estructura. */
     private final List<String> evidenceNotes;
 
     public ArchitectureEvidenceResult(List<String> structuralPaths,

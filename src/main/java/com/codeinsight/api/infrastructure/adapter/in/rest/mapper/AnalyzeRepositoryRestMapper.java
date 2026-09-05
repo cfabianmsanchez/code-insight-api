@@ -11,9 +11,18 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 
+/**
+ * Mapeador de la Capa de Infraestructura REST.
+ * 
+ * Convierte objetos DTOs HTTP a modelos de dominio ({@link FetchCodeRequest})
+ * y resultados de dominio a respuestas DTOs REST ({@link RepositoryAnalysisResponseDto}).
+ */
 @Component
 public class AnalyzeRepositoryRestMapper {
 
+    /**
+     * Mapea una solicitud DTO de GitHub al objeto de solicitud del dominio.
+     */
     public FetchCodeRequest toDomain(GithubAnalysisRequestDto dto) {
         return FetchCodeRequest.builder()
                 .projectKey(dto.getProjectKey())
@@ -22,6 +31,11 @@ public class AnalyzeRepositoryRestMapper {
                 .build();
     }
 
+    /**
+     * Mapea un archivo .ZIP subido vía multipart/form-data al objeto de solicitud del dominio.
+     *
+     * @throws InvalidRepositoryException Si el archivo .ZIP está vacío o es nulo.
+     */
     public FetchCodeRequest toDomain(String projectKey, MultipartFile file) throws IOException {
         if (file == null || file.isEmpty()) {
             throw new InvalidRepositoryException("Uploaded ZIP file cannot be empty");
@@ -33,6 +47,9 @@ public class AnalyzeRepositoryRestMapper {
                 .build();
     }
 
+    /**
+     * Transforma el resultado del análisis de dominio a un DTO de respuesta para la API REST.
+     */
     public RepositoryAnalysisResponseDto toResponseDto(RepositoryAnalysisResult result) {
         return RepositoryAnalysisResponseDto.builder()
                 .projectKey(result.getProjectKey())

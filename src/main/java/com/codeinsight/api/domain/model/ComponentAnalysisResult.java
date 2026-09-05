@@ -4,9 +4,18 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Modelo de Dominio: Resultado del Análisis de Componentes (Etapa 4).
+ * 
+ * Contiene el resumen de componentes de software detectados en el proyecto,
+ * agrupados por estereotipo y enumerados con sus rutas asociadas.
+ */
 public class ComponentAnalysisResult {
+    /** Número total de componentes reconocidos. */
     private final int totalComponents;
+    /** Conteo acumulado por estereotipo (CONTROLLER, SERVICE, REPOSITORY, etc.). */
     private final Map<String, Integer> componentCounts;
+    /** Lista detallada de los componentes detectados. */
     private final List<DetectedComponent> components;
 
     public ComponentAnalysisResult(int totalComponents, Map<String, Integer> componentCounts, List<DetectedComponent> components) {

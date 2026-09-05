@@ -2,9 +2,18 @@ package com.codeinsight.api.domain.model;
 
 import java.util.Objects;
 
+/**
+ * Modelo de Dominio: Componente Detectado.
+ * 
+ * Representa una clase o archivo reconocido como componente de software,
+ * almacenando su nombre, estereotipo y ruta relativa.
+ */
 public class DetectedComponent {
+    /** Nombre simple de la clase o archivo detectado. */
     private final String name;
+    /** Estereotipo de componente asignado. */
     private final ComponentType type;
+    /** Ruta relativa del archivo en el proyecto. */
     private final String relativePath;
 
     public DetectedComponent(String name, ComponentType type, String relativePath) {
