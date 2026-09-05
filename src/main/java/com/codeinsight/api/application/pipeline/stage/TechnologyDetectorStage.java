@@ -66,7 +66,7 @@ public class TechnologyDetectorStage {
                         databases.add("MongoDB");
                     if (content.contains("spring-boot-starter-data-jpa") || content.contains("spring-data-jpa"))
                         libraries.add("Spring Data JPA");
-                    if (content.contains("lombok") || content.contains("org.projectlombok"))
+                    if (content.contains("<artifactid>lombok</artifactid>"))
                         libraries.add("Lombok");
                     if (content.contains("springdoc") || content.contains("swagger"))
                         libraries.add("OpenAPI / Swagger");

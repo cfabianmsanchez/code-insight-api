@@ -3,6 +3,7 @@ package com.codeinsight.api.domain.model;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.LinkedHashMap;
 
 /**
  * Modelo de Dominio: Resultado de Evidencias Arquitectónicas (Etapa 5).
@@ -23,19 +24,26 @@ public class ArchitectureEvidenceResult {
     private final int totalStructuralPaths;
     /** Notas y observaciones factuales generadas sobre la estructura. */
     private final List<String> evidenceNotes;
+    /**
+     * Relaciones detectadas puerto→adaptador.
+     * Clave: nombre del puerto (interfaz), Valor: nombre del adaptador (clase que la implementa).
+     */
+    private final Map<String, String> portAdapterRelations;
 
     public ArchitectureEvidenceResult(List<String> structuralPaths,
                                        List<String> detectedKeywords,
                                        Map<String, Integer> packageComponentDistribution,
                                        int maxPathDepth,
                                        int totalStructuralPaths,
-                                       List<String> evidenceNotes) {
+                                       List<String> evidenceNotes,
+                                       Map<String, String> portAdapterRelations) {
         this.structuralPaths = structuralPaths != null ? Collections.unmodifiableList(structuralPaths) : Collections.emptyList();
         this.detectedKeywords = detectedKeywords != null ? Collections.unmodifiableList(detectedKeywords) : Collections.emptyList();
         this.packageComponentDistribution = packageComponentDistribution != null ? Collections.unmodifiableMap(packageComponentDistribution) : Collections.emptyMap();
         this.maxPathDepth = maxPathDepth;
         this.totalStructuralPaths = totalStructuralPaths;
         this.evidenceNotes = evidenceNotes != null ? Collections.unmodifiableList(evidenceNotes) : Collections.emptyList();
+        this.portAdapterRelations = portAdapterRelations != null ? Collections.unmodifiableMap(portAdapterRelations) : Collections.emptyMap();
     }
 
     public List<String> getStructuralPaths() {
@@ -62,6 +70,11 @@ public class ArchitectureEvidenceResult {
         return evidenceNotes;
     }
 
+    /** Devuelve las relaciones detectadas puerto→adaptador (clave=puerto, valor=adaptador). */
+    public Map<String, String> getPortAdapterRelations() {
+        return portAdapterRelations;
+    }
+
     public static Builder builder() {
         return new Builder();
     }
@@ -73,6 +86,7 @@ public class ArchitectureEvidenceResult {
         private int maxPathDepth;
         private int totalStructuralPaths;
         private List<String> evidenceNotes;
+        private Map<String, String> portAdapterRelations;
 
         public Builder structuralPaths(List<String> structuralPaths) {
             this.structuralPaths = structuralPaths;
@@ -104,8 +118,14 @@ public class ArchitectureEvidenceResult {
             return this;
         }
 
+        /** Asigna las relaciones puerto→adaptador detectadas. */
+        public Builder portAdapterRelations(Map<String, String> portAdapterRelations) {
+            this.portAdapterRelations = portAdapterRelations;
+            return this;
+        }
+
         public ArchitectureEvidenceResult build() {
-            return new ArchitectureEvidenceResult(structuralPaths, detectedKeywords, packageComponentDistribution, maxPathDepth, totalStructuralPaths, evidenceNotes);
+            return new ArchitectureEvidenceResult(structuralPaths, detectedKeywords, packageComponentDistribution, maxPathDepth, totalStructuralPaths, evidenceNotes, portAdapterRelations);
         }
     }
 }

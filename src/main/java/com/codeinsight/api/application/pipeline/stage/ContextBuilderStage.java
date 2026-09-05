@@ -114,6 +114,17 @@ public class ContextBuilderStage {
                     userPromptBuilder.append("  - ").append(note).append("\n");
                 }
             }
+
+            // Relaciones puerto→adaptador (evidencia concreta de hexagonal)
+            if (architectureEvidence.getPortAdapterRelations() != null
+                    && !architectureEvidence.getPortAdapterRelations().isEmpty()) {
+                userPromptBuilder.append("\n### 4b. Relaciones Puerto→Adaptador Detectadas\n");
+                userPromptBuilder.append(
+                        "Las siguientes clases implementan interfaces con sufijos típicos de puerto (Port, UseCase, Repository, etc.):\n");
+                architectureEvidence.getPortAdapterRelations().forEach((adapter, port) ->
+                        userPromptBuilder.append("  - `").append(adapter).append("` implementa `").append(port).append("`\n")
+                );
+            }
         }
         userPromptBuilder.append("\n");
 

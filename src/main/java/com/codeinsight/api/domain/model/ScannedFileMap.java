@@ -44,6 +44,23 @@ public class ScannedFileMap {
     public List<String> getRelativeFilePaths() { return relativeFilePaths; }
     public List<Path> getManifestFiles() { return manifestFiles; }
 
+    /**
+     * Resuelve las rutas relativas contra {@link #rootPath} y devuelve una lista
+     * de rutas absolutas listas para lectura de contenido.
+     * Útil para etapas que necesitan leer el contenido real de los archivos.
+     *
+     * @return Lista de {@link Path} absolutos de todos los archivos escaneados,
+     *         o lista vacía si no hay rutas relativas o rootPath es nulo.
+     */
+    public List<Path> getAllFilePaths() {
+        if (rootPath == null || relativeFilePaths == null) {
+            return java.util.Collections.emptyList();
+        }
+        return relativeFilePaths.stream()
+                .map(rel -> rootPath.resolve(rel))
+                .toList();
+    }
+
     public static Builder builder() { return new Builder(); }
 
     public static class Builder {
