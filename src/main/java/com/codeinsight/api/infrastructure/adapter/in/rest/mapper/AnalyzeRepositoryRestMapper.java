@@ -60,6 +60,7 @@ public class AnalyzeRepositoryRestMapper {
                 .componentAnalysis(result.getComponentAnalysis())
                 .architectureEvidence(result.getArchitectureEvidence())
                 .analysisContext(result.getAnalysisContext())
+                .aiSynthesis(result.getAiSynthesis())
                 .extensionCounts(result.getExtensionCounts())
                 .timestamp(result.getTimestamp())
                 .build();

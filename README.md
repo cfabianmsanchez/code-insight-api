@@ -1,6 +1,6 @@
 # Code Insight API (`code-insight-api`)
 
-Backend desarrollado en **Java 17** y **Spring Boot 3** que implementa **Arquitectura Hexagonal (Puertos y Adaptadores)** y un **Pipeline de Ingeniería Inversa de 6 Etapas Determinísticas** para el análisis estructural y arquitectónico de proyectos de software a partir de repositorios GitHub o archivos ZIP.
+Backend desarrollado en **Java 17** y **Spring Boot 3** que implementa **Arquitectura Hexagonal (Puertos y Adaptadores)** y un **Pipeline de Ingeniería Inversa de 7 Etapas** para el análisis estructural, de componentes y síntesis arquitectónica asistida por IA a partir de repositorios GitHub o archivos ZIP.
 
 ---
 
@@ -40,11 +40,13 @@ com.codeinsight.api
 │   │   ├── TechnologyDetectorStage.java        # Etapa 3: Detección de stack y manifiestos
 │   │   ├── ComponentDetectorStage.java         # Etapa 4: Identificación de componentes
 │   │   ├── ArchitectureEvidenceDetectorStage.java # Etapa 5: Recopilación de evidencias
-│   │   └── ContextBuilderStage.java            # Etapa 6: Ensamblado del contexto LLM
+│   │   ├── ContextBuilderStage.java            # Etapa 6: Ensamblado del contexto LLM
+│   │   └── OllamaAnalysisStage.java            # Etapa 7: Síntesis de arquitectura con IA
 │   ├── port
 │   │   ├── in
 │   │   │   └── AnalyzeRepositoryUseCase.java   # Input Port
 │   │   └── out
+│   │       ├── ArchitectureSynthesisPort.java  # Output Port para síntesis IA (LLM)
 │   │       └── CodeFetcherPort.java            # Output Port para cargadores de código
 │   └── service
 │       └── AnalyzeRepositoryService.java       # Orquestador del pipeline
@@ -56,25 +58,30 @@ com.codeinsight.api
     │   │   ├── dto/
     │   │   ├── mapper/
     │   │   └── exception/                      # GlobalExceptionHandler (RFC 7807)
-    │   └── out/fetcher                         # Driven Adapters (Git & ZIP Fetchers)
-    │       ├── GitRepositoryFetcherAdapter.java
-    │       └── ZipExtractorFetcherAdapter.java
+    │   └── out
+    │       ├── ai                              # Driven Adapter para Ollama (RestClient)
+    │       │   ├── dto/                        # OllamaChatRequest, OllamaChatResponse, OllamaMessage
+    │       │   └── OllamaAdapter.java
+    │       └── fetcher                         # Driven Adapters (Git & ZIP Fetchers)
+    │           ├── GitRepositoryFetcherAdapter.java
+    │           └── ZipExtractorFetcherAdapter.java
     └── config
         └── BeanConfiguration.java              # Configuración de Beans de Spring
 ```
 
 ---
 
-## ⚙️ Pipeline de Análisis de 6 Etapas
+## ⚙️ Pipeline de Análisis de 7 Etapas
 
-El servicio `AnalyzeRepositoryService` ejecuta secuencialmente un pipeline determinístico libre de alucinaciones:
+El servicio `AnalyzeRepositoryService` ejecuta secuencialmente un pipeline determinístico y asistido por IA:
 
 1. **`RepositoryLoaderStage`**: Adquiere el código fuente utilizando el adaptador adecuado (`GitRepositoryFetcherAdapter` o `ZipExtractorFetcherAdapter`) y crea una carpeta efímera (`TempCodeDirectory`) que garantiza su autodestrucción en disco.
 2. **`FileScannerStage`**: Recorre efímeramente el árbol de directorios omitiendo carpetas de compilación o ruido (`.git`, `node_modules`, `target`, etc.) y compila métricas de archivos y manifiestos.
 3. **`TechnologyDetectorStage`**: Examina manifiestos (`pom.xml`, `build.gradle`, `package.json`, `requirements.txt`) para identificar el lenguaje principal, framework, gestor de dependencias y bibliotecas clave.
 4. **`ComponentDetectorStage`**: Analiza clases y anotaciones Java/Spring (`@RestController`, `@Service`, `@Repository`, `@Component`, `@Configuration`) para catalogar los componentes por estereotipo.
 5. **`ArchitectureEvidenceDetectorStage`**: Analiza la profundidad de paquetes, distribución de clases y señales léxicas estructurales (como `domain`, `application`, `infrastructure`, `port`, `adapter`) para calcular el nivel de desacoplamiento aparente.
-6. **`ContextBuilderStage`**: Construye el prompt estructurado en Markdown con las evidencias determinísticas (Ficha Técnica, Stack, Componentes, Evidencias Estructurales y Directivas de Síntesis) listo para ser consumido por el motor de IA (Ollama).
+6. **`ContextBuilderStage`**: Construye el prompt estructurado en Markdown con las evidencias determinísticas (Ficha Técnica, Stack, Componentes, Evidencias Estructurales y Directivas de Síntesis) listo para ser consumido por la IA.
+7. **`OllamaAnalysisStage`**: Invoca el puerto `ArchitectureSynthesisPort` para comunicarse vía HTTP REST con el modelo Ollama local (`qwen2.5-coder`) y sintetizar la evaluación arquitectónica en Markdown. Incluye un modo de respaldo (fallback) en caso de que Ollama no se encuentre en ejecución.
 
 ---
 
@@ -83,6 +90,7 @@ El servicio `AnalyzeRepositoryService` ejecuta secuencialmente un pipeline deter
 ### Requisitos Previos
 - Java 17+
 - Apache Maven 3.8+
+- (Opcional para IA) Ollama ejecutándose en `http://localhost:11434` con el modelo `qwen2.5-coder` (`ollama pull qwen2.5-coder`).
 
 ### Compilación y Suite de Pruebas
 ```bash
@@ -114,8 +122,8 @@ El servidor iniciará en: `http://localhost:8080`
 {
   "projectKey": "code-insight-api",
   "sourceType": "GITHUB_REPO",
-  "totalFiles": 34,
-  "totalDirectories": 15,
+  "totalFiles": 40,
+  "totalDirectories": 16,
   "technologyStack": {
     "mainLanguage": "Java",
     "mainFramework": "Spring Boot",
@@ -127,14 +135,15 @@ El servidor iniciará en: `http://localhost:8080`
     ]
   },
   "componentAnalysis": {
-    "totalComponents": 8,
+    "totalComponents": 10,
     "componentCounts": {
       "CONTROLLER": 1,
       "SERVICE": 1,
-      "COMPONENT": 6
+      "COMPONENT": 8
     }
   },
-  "timestamp": "2026-09-05T11:15:00"
+  "aiSynthesis": "## Radiografía de Ingeniería Inversa\n...",
+  "timestamp": "2026-09-05T11:22:00"
 }
 ```
 

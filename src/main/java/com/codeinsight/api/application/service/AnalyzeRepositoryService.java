@@ -5,6 +5,7 @@ import com.codeinsight.api.application.pipeline.stage.ArchitectureEvidenceDetect
 import com.codeinsight.api.application.pipeline.stage.ComponentDetectorStage;
 import com.codeinsight.api.application.pipeline.stage.ContextBuilderStage;
 import com.codeinsight.api.application.pipeline.stage.FileScannerStage;
+import com.codeinsight.api.application.pipeline.stage.OllamaAnalysisStage;
 import com.codeinsight.api.application.pipeline.stage.RepositoryLoaderStage;
 import com.codeinsight.api.application.pipeline.stage.TechnologyDetectorStage;
 import com.codeinsight.api.application.port.in.AnalyzeRepositoryUseCase;
@@ -33,6 +34,7 @@ public class AnalyzeRepositoryService implements AnalyzeRepositoryUseCase {
     private final ComponentDetectorStage componentDetector;
     private final ArchitectureEvidenceDetectorStage architectureEvidenceDetector;
     private final ContextBuilderStage contextBuilder;
+    private final OllamaAnalysisStage ollamaAnalysis;
 
     /**
      * Crea una nueva instancia del servicio inyectando todas las etapas del pipeline.
@@ -42,17 +44,19 @@ public class AnalyzeRepositoryService implements AnalyzeRepositoryUseCase {
                                    TechnologyDetectorStage technologyDetector,
                                    ComponentDetectorStage componentDetector,
                                    ArchitectureEvidenceDetectorStage architectureEvidenceDetector,
-                                   ContextBuilderStage contextBuilder) {
+                                   ContextBuilderStage contextBuilder,
+                                   OllamaAnalysisStage ollamaAnalysis) {
         this.repositoryLoader = repositoryLoader;
         this.fileScanner = fileScanner;
         this.technologyDetector = technologyDetector;
         this.componentDetector = componentDetector;
         this.architectureEvidenceDetector = architectureEvidenceDetector;
         this.contextBuilder = contextBuilder;
+        this.ollamaAnalysis = ollamaAnalysis;
     }
 
     /**
-     * Orquesta secuencialmente las etapas del pipeline (Carga, Escaneo, Stack, Componentes, Evidencias y Contexto).
+     * Orquesta secuencialmente las etapas del pipeline (Carga, Escaneo, Stack, Componentes, Evidencias, Contexto y Síntesis IA).
      *
      * @param request Solicitud con los datos de acceso al código fuente.
      * @return {@link RepositoryAnalysisResult} con la radiografía completa consolidada.
@@ -77,6 +81,9 @@ public class AnalyzeRepositoryService implements AnalyzeRepositoryUseCase {
             // Etapa 6: Context Builder (Ensamblado del prompt estructurado y contexto de análisis)
             AnalysisContext analysisContext = contextBuilder.buildContext(request, scannedFiles, technologyStack, componentAnalysis, architectureEvidence);
 
+            // Etapa 7: Ollama Analysis (Síntesis de arquitectura asistida por IA)
+            String aiSynthesis = ollamaAnalysis.analyze(analysisContext);
+
             return RepositoryAnalysisResult.builder()
                     .projectKey(request.getProjectKey())
                     .sourceType(request.getSourceType())
@@ -86,6 +93,7 @@ public class AnalyzeRepositoryService implements AnalyzeRepositoryUseCase {
                     .componentAnalysis(componentAnalysis)
                     .architectureEvidence(architectureEvidence)
                     .analysisContext(analysisContext)
+                    .aiSynthesis(aiSynthesis)
                     .extensionCounts(scannedFiles.getExtensionCounts())
                     .timestamp(LocalDateTime.now())
                     .build();

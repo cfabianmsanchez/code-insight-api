@@ -5,8 +5,10 @@ import com.codeinsight.api.application.pipeline.stage.ArchitectureEvidenceDetect
 import com.codeinsight.api.application.pipeline.stage.ComponentDetectorStage;
 import com.codeinsight.api.application.pipeline.stage.ContextBuilderStage;
 import com.codeinsight.api.application.pipeline.stage.FileScannerStage;
+import com.codeinsight.api.application.pipeline.stage.OllamaAnalysisStage;
 import com.codeinsight.api.application.pipeline.stage.RepositoryLoaderStage;
 import com.codeinsight.api.application.pipeline.stage.TechnologyDetectorStage;
+import com.codeinsight.api.application.port.out.ArchitectureSynthesisPort;
 import com.codeinsight.api.application.port.out.CodeFetcherPort;
 import com.codeinsight.api.domain.model.FetchCodeRequest;
 import com.codeinsight.api.domain.model.RepositoryAnalysisResult;
@@ -68,8 +70,10 @@ class AnalyzeRepositoryServiceTest {
         ComponentDetectorStage componentStage = new ComponentDetectorStage();
         ArchitectureEvidenceDetectorStage archStage = new ArchitectureEvidenceDetectorStage();
         ContextBuilderStage contextStage = new ContextBuilderStage();
+        ArchitectureSynthesisPort mockSynthesisPort = (sys, user) -> "Mocked AI Architecture Synthesis Report";
+        OllamaAnalysisStage ollamaStage = new OllamaAnalysisStage(mockSynthesisPort);
 
-        AnalyzeRepositoryService service = new AnalyzeRepositoryService(loaderStage, scannerStage, techStage, componentStage, archStage, contextStage);
+        AnalyzeRepositoryService service = new AnalyzeRepositoryService(loaderStage, scannerStage, techStage, componentStage, archStage, contextStage, ollamaStage);
 
         FetchCodeRequest request = FetchCodeRequest.builder()
                 .projectKey("pipeline-integration-test")
@@ -91,5 +95,7 @@ class AnalyzeRepositoryServiceTest {
 
         assertNotNull(result.getArchitectureEvidence());
         assertNotNull(result.getAnalysisContext());
+        assertNotNull(result.getAiSynthesis());
+        assertEquals("Mocked AI Architecture Synthesis Report", result.getAiSynthesis());
     }
 }

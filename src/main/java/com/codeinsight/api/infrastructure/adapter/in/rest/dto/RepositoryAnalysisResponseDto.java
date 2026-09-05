@@ -28,6 +28,8 @@ public class RepositoryAnalysisResponseDto {
     private ArchitectureEvidenceResult architectureEvidence;
     /** Contexto de prompts estructurados para el motor de IA. */
     private AnalysisContext analysisContext;
+    /** Síntesis técnica y evaluación del modelo de IA (Ollama). */
+    private String aiSynthesis;
     /** Distribución de conteo por extensión de archivo. */
     private Map<String, Integer> extensionCounts;
     /** Marca de tiempo de conclusión del análisis. */
@@ -39,7 +41,7 @@ public class RepositoryAnalysisResponseDto {
                                          int totalDirectories, TechnologyStack technologyStack,
                                          ComponentAnalysisResult componentAnalysis,
                                          ArchitectureEvidenceResult architectureEvidence,
-                                         AnalysisContext analysisContext,
+                                         AnalysisContext analysisContext, String aiSynthesis,
                                          Map<String, Integer> extensionCounts, LocalDateTime timestamp) {
         this.projectKey = projectKey;
         this.sourceType = sourceType;
@@ -49,6 +51,7 @@ public class RepositoryAnalysisResponseDto {
         this.componentAnalysis = componentAnalysis;
         this.architectureEvidence = architectureEvidence;
         this.analysisContext = analysisContext;
+        this.aiSynthesis = aiSynthesis;
         this.extensionCounts = extensionCounts;
         this.timestamp = timestamp;
     }
@@ -61,6 +64,7 @@ public class RepositoryAnalysisResponseDto {
     public ComponentAnalysisResult getComponentAnalysis() { return componentAnalysis; }
     public ArchitectureEvidenceResult getArchitectureEvidence() { return architectureEvidence; }
     public AnalysisContext getAnalysisContext() { return analysisContext; }
+    public String getAiSynthesis() { return aiSynthesis; }
     public Map<String, Integer> getExtensionCounts() { return extensionCounts; }
     public LocalDateTime getTimestamp() { return timestamp; }
 
@@ -75,6 +79,7 @@ public class RepositoryAnalysisResponseDto {
         private ComponentAnalysisResult componentAnalysis;
         private ArchitectureEvidenceResult architectureEvidence;
         private AnalysisContext analysisContext;
+        private String aiSynthesis;
         private Map<String, Integer> extensionCounts;
         private LocalDateTime timestamp;
 
@@ -86,11 +91,12 @@ public class RepositoryAnalysisResponseDto {
         public Builder componentAnalysis(ComponentAnalysisResult componentAnalysis) { this.componentAnalysis = componentAnalysis; return this; }
         public Builder architectureEvidence(ArchitectureEvidenceResult architectureEvidence) { this.architectureEvidence = architectureEvidence; return this; }
         public Builder analysisContext(AnalysisContext analysisContext) { this.analysisContext = analysisContext; return this; }
+        public Builder aiSynthesis(String aiSynthesis) { this.aiSynthesis = aiSynthesis; return this; }
         public Builder extensionCounts(Map<String, Integer> extensionCounts) { this.extensionCounts = extensionCounts; return this; }
         public Builder timestamp(LocalDateTime timestamp) { this.timestamp = timestamp; return this; }
 
         public RepositoryAnalysisResponseDto build() {
-            return new RepositoryAnalysisResponseDto(projectKey, sourceType, totalFiles, totalDirectories, technologyStack, componentAnalysis, architectureEvidence, analysisContext, extensionCounts, timestamp);
+            return new RepositoryAnalysisResponseDto(projectKey, sourceType, totalFiles, totalDirectories, technologyStack, componentAnalysis, architectureEvidence, analysisContext, aiSynthesis, extensionCounts, timestamp);
         }
     }
 }

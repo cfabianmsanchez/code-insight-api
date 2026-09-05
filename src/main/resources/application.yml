@@ -20,3 +20,9 @@ logging:
   level:
     root: INFO
     com.codeinsight.api: DEBUG
+
+# Ollama Local LLM Configuration
+ollama:
+  base-url: ${OLLAMA_BASE_URL:http://localhost:11434}
+  model: ${OLLAMA_MODEL:qwen2.5-coder}
+
