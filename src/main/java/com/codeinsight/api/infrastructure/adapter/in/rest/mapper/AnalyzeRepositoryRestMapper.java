@@ -1,5 +1,6 @@
 package com.codeinsight.api.infrastructure.adapter.in.rest.mapper;
 
+import com.codeinsight.api.domain.exception.InvalidRepositoryException;
 import com.codeinsight.api.domain.model.FetchCodeRequest;
 import com.codeinsight.api.domain.model.RepositoryAnalysisResult;
 import com.codeinsight.api.domain.model.SourceType;
@@ -23,7 +24,7 @@ public class AnalyzeRepositoryRestMapper {
 
     public FetchCodeRequest toDomain(String projectKey, MultipartFile file) throws IOException {
         if (file == null || file.isEmpty()) {
-            throw new IllegalArgumentException("Uploaded ZIP file cannot be empty");
+            throw new InvalidRepositoryException("Uploaded ZIP file cannot be empty");
         }
         return FetchCodeRequest.builder()
                 .projectKey(projectKey)

@@ -1,7 +1,10 @@
 package com.codeinsight.api.application.pipeline.stage;
 
+import com.codeinsight.api.domain.exception.InvalidRepositoryException;
 import com.codeinsight.api.domain.model.ScannedFileMap;
 import com.codeinsight.api.domain.model.TechnologyStack;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
@@ -13,18 +16,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-/**
- * Etapa 3 del Pipeline: Technology Detector.
- * Lee de manera determinista los archivos manifiesto del proyecto (pom.xml, package.json, etc.)
- * y las extensiones de archivos para identificar el Lenguaje Principal, Framework, Herramientas de Build
- * y Bases de Datos detectadas.
- */
 @Component
 public class TechnologyDetectorStage {
 
+    private static final Logger log = LoggerFactory.getLogger(TechnologyDetectorStage.class);
+
     public TechnologyStack detect(ScannedFileMap scannedMap) {
         if (scannedMap == null) {
-            throw new IllegalArgumentException("ScannedFileMap cannot be null");
+            throw new InvalidRepositoryException("ScannedFileMap cannot be null");
         }
 
         String mainLanguage = determineMainLanguage(scannedMap.getExtensionCounts());
@@ -44,22 +43,32 @@ public class TechnologyDetectorStage {
                         mainFramework = "Spring Boot";
                         mainLanguage = "Java";
                     }
-                    if (content.contains("postgresql") || content.contains("org.postgresql")) databases.add("PostgreSQL");
-                    if (content.contains("h2database") || content.contains("com.h2database")) databases.add("H2");
-                    if (content.contains("mysql-connector") || content.contains("mysql")) databases.add("MySQL");
-                    if (content.contains("mongodb") || content.contains("spring-boot-starter-data-mongodb")) databases.add("MongoDB");
-                    if (content.contains("spring-boot-starter-data-jpa") || content.contains("spring-data-jpa")) libraries.add("Spring Data JPA");
-                    if (content.contains("lombok") || content.contains("org.projectlombok")) libraries.add("Lombok");
-                    if (content.contains("springdoc") || content.contains("swagger")) libraries.add("OpenAPI / Swagger");
+                    if (content.contains("postgresql") || content.contains("org.postgresql"))
+                        databases.add("PostgreSQL");
+                    if (content.contains("h2database") || content.contains("com.h2database"))
+                        databases.add("H2");
+                    if (content.contains("mysql-connector") || content.contains("mysql"))
+                        databases.add("MySQL");
+                    if (content.contains("mongodb") || content.contains("spring-boot-starter-data-mongodb"))
+                        databases.add("MongoDB");
+                    if (content.contains("spring-boot-starter-data-jpa") || content.contains("spring-data-jpa"))
+                        libraries.add("Spring Data JPA");
+                    if (content.contains("lombok") || content.contains("org.projectlombok"))
+                        libraries.add("Lombok");
+                    if (content.contains("springdoc") || content.contains("swagger"))
+                        libraries.add("OpenAPI / Swagger");
                 } else if (fileName.startsWith("build.gradle")) {
                     buildTool = "Gradle";
                     if (content.contains("spring-boot")) {
                         mainFramework = "Spring Boot";
                         mainLanguage = "Java";
                     }
-                    if (content.contains("postgresql")) databases.add("PostgreSQL");
-                    if (content.contains("h2database") || content.contains("com.h2database")) databases.add("H2");
-                    if (content.contains("mysql")) databases.add("MySQL");
+                    if (content.contains("postgresql"))
+                        databases.add("PostgreSQL");
+                    if (content.contains("h2database") || content.contains("com.h2database"))
+                        databases.add("H2");
+                    if (content.contains("mysql"))
+                        databases.add("MySQL");
                 } else if (fileName.equals("package.json")) {
                     buildTool = "npm / Node.js";
                     if (content.contains("@angular/core")) {
@@ -74,18 +83,26 @@ public class TechnologyDetectorStage {
                     } else if (content.contains("express")) {
                         mainFramework = "Express.js";
                     }
-                    if (content.contains("pg") || content.contains("postgres")) databases.add("PostgreSQL");
-                    if (content.contains("mysql")) databases.add("MySQL");
-                    if (content.contains("mongoose") || content.contains("mongodb")) databases.add("MongoDB");
+                    if (content.contains("pg") || content.contains("postgres"))
+                        databases.add("PostgreSQL");
+                    if (content.contains("mysql"))
+                        databases.add("MySQL");
+                    if (content.contains("mongoose") || content.contains("mongodb"))
+                        databases.add("MongoDB");
                 } else if (fileName.equals("requirements.txt") || fileName.equals("pyproject.toml")) {
                     buildTool = "pip / Python";
                     mainLanguage = "Python";
-                    if (content.contains("fastapi")) mainFramework = "FastAPI";
-                    else if (content.contains("django")) mainFramework = "Django";
-                    else if (content.contains("flask")) mainFramework = "Flask";
+                    if (content.contains("fastapi"))
+                        mainFramework = "FastAPI";
+                    else if (content.contains("django"))
+                        mainFramework = "Django";
+                    else if (content.contains("flask"))
+                        mainFramework = "Flask";
 
-                    if (content.contains("psycopg2")) databases.add("PostgreSQL");
-                    if (content.contains("sqlalchemy")) libraries.add("SQLAlchemy");
+                    if (content.contains("psycopg2"))
+                        databases.add("PostgreSQL");
+                    if (content.contains("sqlalchemy"))
+                        libraries.add("SQLAlchemy");
                 } else if (fileName.equals("dockerfile")) {
                     libraries.add("Docker Containerization");
                 }
@@ -112,7 +129,8 @@ public class TechnologyDetectorStage {
         int jsCount = extCounts.getOrDefault(".js", 0);
         int goCount = extCounts.getOrDefault(".go", 0);
 
-        if (javaCount >= tsCount && javaCount >= pyCount && javaCount >= jsCount && javaCount >= goCount && javaCount > 0) {
+        if (javaCount >= tsCount && javaCount >= pyCount && javaCount >= jsCount && javaCount >= goCount
+                && javaCount > 0) {
             return "Java";
         }
         if (tsCount >= pyCount && tsCount >= jsCount && tsCount >= goCount && tsCount > 0) {
@@ -135,6 +153,7 @@ public class TechnologyDetectorStage {
         try {
             return Files.readString(path).toLowerCase();
         } catch (IOException e) {
+            log.warn("Could not read content from manifest file {}: {}", path, e.getMessage());
             return "";
         }
     }

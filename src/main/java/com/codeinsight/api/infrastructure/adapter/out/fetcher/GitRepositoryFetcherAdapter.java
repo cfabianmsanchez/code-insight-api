@@ -2,6 +2,7 @@ package com.codeinsight.api.infrastructure.adapter.out.fetcher;
 
 import com.codeinsight.api.application.model.TempCodeDirectory;
 import com.codeinsight.api.application.port.out.CodeFetcherPort;
+import com.codeinsight.api.domain.exception.RepositoryFetchException;
 import com.codeinsight.api.domain.model.FetchCodeRequest;
 import com.codeinsight.api.domain.model.SourceType;
 import org.eclipse.jgit.api.Git;
@@ -42,7 +43,7 @@ public class GitRepositoryFetcherAdapter implements CodeFetcherPort {
 
             return new TempCodeDirectory(tempDir, SourceType.GITHUB_REPO);
         } catch (IOException | GitAPIException e) {
-            throw new RuntimeException("Failed to clone GitHub repository from URL: " + request.getRepoUrl() + ". Details: " + e.getMessage(), e);
+            throw new RepositoryFetchException("Failed to clone GitHub repository from URL: " + request.getRepoUrl() + ". Details: " + e.getMessage(), e);
         }
     }
 }

@@ -2,6 +2,7 @@ package com.codeinsight.api.infrastructure.adapter.out.fetcher;
 
 import com.codeinsight.api.application.model.TempCodeDirectory;
 import com.codeinsight.api.application.port.out.CodeFetcherPort;
+import com.codeinsight.api.domain.exception.RepositoryFetchException;
 import com.codeinsight.api.domain.model.FetchCodeRequest;
 import com.codeinsight.api.domain.model.SourceType;
 import org.springframework.stereotype.Component;
@@ -31,7 +32,7 @@ public class ZipExtractorFetcherAdapter implements CodeFetcherPort {
             extractZipStream(request.getZipInputStream(), tempDir);
             return new TempCodeDirectory(tempDir, SourceType.ZIP_FILE);
         } catch (IOException e) {
-            throw new RuntimeException("Failed to extract ZIP file into temporary directory. Details: " + e.getMessage(), e);
+            throw new RepositoryFetchException("Failed to extract ZIP file into temporary directory. Details: " + e.getMessage(), e);
         }
     }
 
@@ -50,12 +51,12 @@ public class ZipExtractorFetcherAdapter implements CodeFetcherPort {
                 File newFile = newFile(targetDir.toFile(), zipEntry);
                 if (zipEntry.isDirectory()) {
                     if (!newFile.isDirectory() && !newFile.mkdirs()) {
-                        throw new IOException("Failed to create directory " + newFile);
+                        throw new RepositoryFetchException("Failed to create directory " + newFile);
                     }
                 } else {
                     File parent = newFile.getParentFile();
                     if (!parent.isDirectory() && !parent.mkdirs()) {
-                        throw new IOException("Failed to create directory " + parent);
+                        throw new RepositoryFetchException("Failed to create directory " + parent);
                     }
                     try (FileOutputStream fos = new FileOutputStream(newFile)) {
                         int len;
@@ -76,7 +77,7 @@ public class ZipExtractorFetcherAdapter implements CodeFetcherPort {
         String destFilePath = destFile.getCanonicalPath();
 
         if (!destFilePath.startsWith(destDirPath + File.separator)) {
-            throw new IOException("Entry is outside of the target dir: " + zipEntry.getName());
+            throw new RepositoryFetchException("Zip entry is outside of the target dir (Zip Slip vulnerability attempt): " + zipEntry.getName());
         }
         return destFile;
     }

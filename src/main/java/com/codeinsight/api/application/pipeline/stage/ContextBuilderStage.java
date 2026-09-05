@@ -11,19 +11,14 @@ import org.springframework.stereotype.Component;
 
 import java.util.Map;
 
-/**
- * Etapa 6 del Pipeline: Context Builder.
- * Consolida las evidencias y métricas recolectadas en las Etapas 2 a 5 en un prompt
- * estructurado en formato Markdown, optimizado para ser consumido por el motor de IA (Etapa 7).
- */
 @Component
 public class ContextBuilderStage {
 
     public AnalysisContext buildContext(FetchCodeRequest request,
-                                        ScannedFileMap scannedFiles,
-                                        TechnologyStack techStack,
-                                        ComponentAnalysisResult componentAnalysis,
-                                        ArchitectureEvidenceResult architectureEvidence) {
+            ScannedFileMap scannedFiles,
+            TechnologyStack techStack,
+            ComponentAnalysisResult componentAnalysis,
+            ArchitectureEvidenceResult architectureEvidence) {
 
         String systemPrompt = """
                 Eres un Ingeniero de Software Senior y Arquitecto de Soluciones experto en Ingeniería Inversa de Software.
@@ -48,8 +43,10 @@ public class ContextBuilderStage {
         }
         if (scannedFiles != null) {
             userPromptBuilder.append("- **Total de Archivos**: ").append(scannedFiles.getTotalFiles()).append("\n");
-            userPromptBuilder.append("- **Total de Directorios**: ").append(scannedFiles.getTotalDirectories()).append("\n");
-            userPromptBuilder.append("- **Conteo por Extensión**: ").append(scannedFiles.getExtensionCounts()).append("\n");
+            userPromptBuilder.append("- **Total de Directorios**: ").append(scannedFiles.getTotalDirectories())
+                    .append("\n");
+            userPromptBuilder.append("- **Conteo por Extensión**: ").append(scannedFiles.getExtensionCounts())
+                    .append("\n");
         }
         userPromptBuilder.append("\n");
 
@@ -58,8 +55,10 @@ public class ContextBuilderStage {
         if (techStack != null) {
             userPromptBuilder.append("- **Lenguaje Principal**: ").append(techStack.getMainLanguage()).append("\n");
             userPromptBuilder.append("- **Framework Principal**: ").append(techStack.getMainFramework()).append("\n");
-            userPromptBuilder.append("- **Herramienta de Compilación**: ").append(techStack.getBuildTool()).append("\n");
-            userPromptBuilder.append("- **Bases de Datos Detectadas**: ").append(techStack.getDatabasesDetected()).append("\n");
+            userPromptBuilder.append("- **Herramienta de Compilación**: ").append(techStack.getBuildTool())
+                    .append("\n");
+            userPromptBuilder.append("- **Bases de Datos Detectadas**: ").append(techStack.getDatabasesDetected())
+                    .append("\n");
             userPromptBuilder.append("- **Librerías Clave**: ").append(techStack.getKeyLibraries()).append("\n");
         }
         userPromptBuilder.append("\n");
@@ -67,8 +66,10 @@ public class ContextBuilderStage {
         // 3. Catálogo de Componentes
         userPromptBuilder.append("## 3. Catálogo de Componentes Identificados\n");
         if (componentAnalysis != null) {
-            userPromptBuilder.append("- **Total de Componentes**: ").append(componentAnalysis.getTotalComponents()).append("\n");
-            userPromptBuilder.append("- **Distribución por Estereotipo**: ").append(componentAnalysis.getComponentCounts()).append("\n");
+            userPromptBuilder.append("- **Total de Componentes**: ").append(componentAnalysis.getTotalComponents())
+                    .append("\n");
+            userPromptBuilder.append("- **Distribución por Estereotipo**: ")
+                    .append(componentAnalysis.getComponentCounts()).append("\n");
             userPromptBuilder.append("- **Lista de Componentes y Rutas de Evidencia**:\n");
             if (componentAnalysis.getComponents() != null) {
                 for (DetectedComponent comp : componentAnalysis.getComponents()) {
@@ -83,10 +84,14 @@ public class ContextBuilderStage {
         // 4. Evidencias Estructurales de Arquitectura
         userPromptBuilder.append("## 4. Evidencias y Señales Estructurales de Arquitectura\n");
         if (architectureEvidence != null) {
-            userPromptBuilder.append("- **Rutas Estructurales Distintas**: ").append(architectureEvidence.getTotalStructuralPaths()).append("\n");
-            userPromptBuilder.append("- **Profundidad Máxima de Rutas**: ").append(architectureEvidence.getMaxPathDepth()).append(" segmentos\n");
-            userPromptBuilder.append("- **Palabras Clave de Arquitectura Encontradas**: ").append(architectureEvidence.getDetectedKeywords()).append("\n");
-            userPromptBuilder.append("- **Distribución de Componentes por Paquete/Capa**: ").append(architectureEvidence.getPackageComponentDistribution()).append("\n");
+            userPromptBuilder.append("- **Rutas Estructurales Distintas**: ")
+                    .append(architectureEvidence.getTotalStructuralPaths()).append("\n");
+            userPromptBuilder.append("- **Profundidad Máxima de Rutas**: ")
+                    .append(architectureEvidence.getMaxPathDepth()).append(" segmentos\n");
+            userPromptBuilder.append("- **Palabras Clave de Arquitectura Encontradas**: ")
+                    .append(architectureEvidence.getDetectedKeywords()).append("\n");
+            userPromptBuilder.append("- **Distribución de Componentes por Paquete/Capa**: ")
+                    .append(architectureEvidence.getPackageComponentDistribution()).append("\n");
             userPromptBuilder.append("- **Notas Factuales de Evidencia**:\n");
             if (architectureEvidence.getEvidenceNotes() != null) {
                 for (String note : architectureEvidence.getEvidenceNotes()) {
@@ -97,18 +102,19 @@ public class ContextBuilderStage {
         userPromptBuilder.append("\n");
 
         // 5. Directivas de Análisis para la IA
-        userPromptBuilder.append("""
-                ## 5. Directivas para la Síntesis Arquitectónica (Ollama)
-                Con base en la radiografía factual anterior, redacta el análisis en Markdown respondiendo a:
-                1. Determina el estilo o patrón arquitectónico más probable (Hexagonal / Puertos y Adaptadores, Clean Architecture, Layered MVC, Monolito Modular, etc.). Incluye:
-                   - Estilo principal inferido
-                   - Nivel de confianza estimado (de 0.0 a 1.0)
-                   - Evidencias concretas de rutas y componentes que lo sustentan
-                   - Estilos alternativos plausibles
-                   - Aspectos o limitaciones que no pueden comprobarse con la evidencia disponible (ej. dirección real de dependencias importadas).
-                2. Evalúa la organización de capas y el nivel de desacoplamiento aparente según la distribución de componentes y paquetes.
-                3. Emite 3 recomendaciones técnicas de alto impacto para mejorar la arquitectura, mantenibilidad o completitud de la solución.
-                """);
+        userPromptBuilder
+                .append("""
+                        ## 5. Directivas para la Síntesis Arquitectónica (Ollama)
+                        Con base en la radiografía factual anterior, redacta el análisis en Markdown respondiendo a:
+                        1. Determina el estilo o patrón arquitectónico más probable (Hexagonal / Puertos y Adaptadores, Clean Architecture, Layered MVC, Monolito Modular, etc.). Incluye:
+                           - Estilo principal inferido
+                           - Nivel de confianza estimado (de 0.0 a 1.0)
+                           - Evidencias concretas de rutas y componentes que lo sustentan
+                           - Estilos alternativos plausibles
+                           - Aspectos o limitaciones que no pueden comprobarse con la evidencia disponible (ej. dirección real de dependencias importadas).
+                        2. Evalúa la organización de capas y el nivel de desacoplamiento aparente según la distribución de componentes y paquetes.
+                        3. Emite 3 recomendaciones técnicas de alto impacto para mejorar la arquitectura, mantenibilidad o completitud de la solución.
+                        """);
 
         String userPrompt = userPromptBuilder.toString();
         String formattedContextPrompt = systemPrompt.trim() + "\n\n" + userPrompt.trim();

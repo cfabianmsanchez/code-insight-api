@@ -1,5 +1,6 @@
 package com.codeinsight.api.application.pipeline.stage;
 
+import com.codeinsight.api.domain.exception.InvalidRepositoryException;
 import com.codeinsight.api.domain.model.ArchitectureEvidenceResult;
 import com.codeinsight.api.domain.model.ComponentAnalysisResult;
 import com.codeinsight.api.domain.model.DetectedComponent;
@@ -15,14 +16,23 @@ import java.util.Set;
 import java.util.TreeSet;
 
 /**
- * Etapa 5 del Pipeline: Architecture Evidence Detector.
- * Recopila evidencias objetivas y señales estructurales sobre la arquitectura del proyecto
- * (rutas estructurales, distribución de componentes y palabras clave arquitectónicas)
- * sin emitir juicios ni clasificaciones rígidas.
+ * Detector de Evidencias Arquitectónicas.
+ * 
+ * Analiza la estructura de carpetas y nombres de paquetes del proyecto para
+ * recopilar
+ * evidencias objetivas y señales estructurales (palabras clave como 'domain',
+ * 'adapter',
+ * 'port', profundidad de rutas y distribución de componentes por capa), sin
+ * emitir
+ * conclusiones ni clasificaciones rígidas.
  */
 @Component
 public class ArchitectureEvidenceDetectorStage {
 
+    /**
+     * Conjunto de palabras clave de arquitectura buscadas en los nombres de
+     * directorios.
+     */
     private static final Set<String> KNOWN_ARCHITECTURAL_KEYWORDS = Set.of(
             "domain", "application", "infrastructure",
             "port", "ports",
@@ -38,21 +48,34 @@ public class ArchitectureEvidenceDetectorStage {
             "component", "components",
             "mapper", "mappers",
             "exception", "exceptions",
-            "shared", "core", "web", "view", "views"
-    );
+            "shared", "core", "web", "view", "views");
 
+    /**
+     * Palabras clave prioritarias para identificar la capa o paquete principal de
+     * un componente.
+     */
     private static final Set<String> LAYER_KEYWORDS = Set.of(
             "domain", "application", "infrastructure",
             "feature", "features",
             "core", "web",
             "service", "services",
             "repository", "repositories",
-            "controller", "controllers"
-    );
+            "controller", "controllers");
 
+    /**
+     * Inspecciona las rutas de archivos escaneados y componentes identificados para
+     * extraer
+     * evidencias estructurales y métricas factuales sobre la arquitectura del
+     * repositorio.
+     *
+     * @param scannedFiles      Mapa de archivos escaneados
+     * @param componentAnalysis Resultado del análisis de componentes
+     * @return {@link ArchitectureEvidenceResult} con la distribución de paquetes,
+     *         palabras clave y métricas.
+     */
     public ArchitectureEvidenceResult detect(ScannedFileMap scannedFiles, ComponentAnalysisResult componentAnalysis) {
         if (scannedFiles == null) {
-            throw new IllegalArgumentException("ScannedFileMap must not be null");
+            throw new InvalidRepositoryException("ScannedFileMap must not be null");
         }
 
         Set<String> structuralPaths = new TreeSet<>();
@@ -91,15 +114,18 @@ public class ArchitectureEvidenceDetectorStage {
                 String componentPath = component.getRelativePath();
                 if (componentPath != null) {
                     String layerOrPackage = extractTopLayerPackage(componentPath);
-                    packageComponentDistribution.put(layerOrPackage, packageComponentDistribution.getOrDefault(layerOrPackage, 0) + 1);
+                    packageComponentDistribution.put(layerOrPackage,
+                            packageComponentDistribution.getOrDefault(layerOrPackage, 0) + 1);
                 }
             }
         }
 
-        // Generar notas de evidencia puramente factuales
-        evidenceNotes.add("Identificadas " + structuralPaths.size() + " rutas estructurales distintas con profundidad máxima de " + maxDepth + " segmentos.");
+        /* Generar notas de evidencia puramente factuales */
+        evidenceNotes.add("Identificadas " + structuralPaths.size()
+                + " rutas estructurales distintas con profundidad máxima de " + maxDepth + " segmentos.");
         if (!detectedKeywords.isEmpty()) {
-            evidenceNotes.add("Palabras clave de arquitectura encontradas en rutas: " + String.join(", ", detectedKeywords));
+            evidenceNotes
+                    .add("Palabras clave de arquitectura encontradas en rutas: " + String.join(", ", detectedKeywords));
         }
         if (!packageComponentDistribution.isEmpty()) {
             evidenceNotes.add("Distribución de componentes por paquete/capa: " + packageComponentDistribution);
@@ -115,6 +141,15 @@ public class ArchitectureEvidenceDetectorStage {
                 .build();
     }
 
+    /**
+     * Extrae el nombre de la capa o paquete representativo a partir de la ruta
+     * relativa de un archivo.
+     * Busca primero coincidencias con palabras clave de capa (ej. domain,
+     * application, infrastructure).
+     *
+     * @param relativePath Ruta relativa del archivo.
+     * @return Nombre de la capa o directorio padre relevante.
+     */
     private String extractTopLayerPackage(String relativePath) {
         Path path = Path.of(relativePath);
         Path parent = path.getParent();

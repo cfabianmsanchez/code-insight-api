@@ -2,6 +2,7 @@ package com.codeinsight.api.application.pipeline.stage;
 
 import com.codeinsight.api.application.model.TempCodeDirectory;
 import com.codeinsight.api.application.port.out.CodeFetcherPort;
+import com.codeinsight.api.domain.exception.InvalidRepositoryException;
 import com.codeinsight.api.domain.model.FetchCodeRequest;
 import com.codeinsight.api.domain.model.SourceType;
 import org.junit.jupiter.api.Test;
@@ -55,6 +56,6 @@ class RepositoryLoaderStageTest {
     @Test
     void loadRepository_shouldThrowExceptionIfRequestIsNull() {
         RepositoryLoaderStage repositoryLoaderStage = new RepositoryLoaderStage(List.of(githubFetcherPort));
-        assertThrows(IllegalArgumentException.class, () -> repositoryLoaderStage.loadRepository(null));
+        assertThrows(InvalidRepositoryException.class, () -> repositoryLoaderStage.loadRepository(null));
     }
 }

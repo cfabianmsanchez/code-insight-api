@@ -1,5 +1,10 @@
 package com.codeinsight.api.infrastructure.adapter.in.rest.exception;
 
+import com.codeinsight.api.domain.exception.DomainException;
+import com.codeinsight.api.domain.exception.InvalidRepositoryException;
+import com.codeinsight.api.domain.exception.RepositoryFetchException;
+import com.codeinsight.api.domain.exception.RepositoryScanningException;
+import com.codeinsight.api.domain.exception.UnsupportedSourceTypeException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -17,12 +22,34 @@ public class GlobalExceptionHandler {
 
     private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
-    @ExceptionHandler(IllegalArgumentException.class)
-    public ResponseEntity<Map<String, Object>> handleIllegalArgumentException(IllegalArgumentException ex) {
+    @ExceptionHandler({InvalidRepositoryException.class, UnsupportedSourceTypeException.class, IllegalArgumentException.class})
+    public ResponseEntity<Map<String, Object>> handleBadRequestDomainExceptions(Exception ex) {
         Map<String, Object> body = new HashMap<>();
         body.put("timestamp", LocalDateTime.now());
         body.put("status", HttpStatus.BAD_REQUEST.value());
         body.put("error", "Bad Request");
+        body.put("message", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
+    }
+
+    @ExceptionHandler({RepositoryFetchException.class, RepositoryScanningException.class})
+    public ResponseEntity<Map<String, Object>> handleUnprocessableDomainExceptions(DomainException ex) {
+        log.warn("Domain processing failure: {}", ex.getMessage());
+        Map<String, Object> body = new HashMap<>();
+        body.put("timestamp", LocalDateTime.now());
+        body.put("status", HttpStatus.UNPROCESSABLE_ENTITY.value());
+        body.put("error", "Unprocessable Repository Entity");
+        body.put("message", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(body);
+    }
+
+    @ExceptionHandler(DomainException.class)
+    public ResponseEntity<Map<String, Object>> handleGenericDomainException(DomainException ex) {
+        log.warn("Domain exception caught: {}", ex.getMessage());
+        Map<String, Object> body = new HashMap<>();
+        body.put("timestamp", LocalDateTime.now());
+        body.put("status", HttpStatus.BAD_REQUEST.value());
+        body.put("error", "Domain Error");
         body.put("message", ex.getMessage());
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
     }

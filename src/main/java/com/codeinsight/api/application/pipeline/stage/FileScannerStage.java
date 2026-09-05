@@ -1,5 +1,7 @@
 package com.codeinsight.api.application.pipeline.stage;
 
+import com.codeinsight.api.domain.exception.InvalidRepositoryException;
+import com.codeinsight.api.domain.exception.RepositoryScanningException;
 import com.codeinsight.api.domain.model.ScannedFileMap;
 import org.springframework.stereotype.Component;
 
@@ -15,30 +17,22 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-/**
- * Etapa 2 del Pipeline: File Scanner.
- * Recorre el árbol de carpetas efímeras, filtra directorios de ruido (.git, node_modules, target, etc.)
- * y recopila métricas de archivos, extensiones y manifiestos del proyecto.
- */
 @Component
 public class FileScannerStage {
 
     private static final Set<String> IGNORED_DIRECTORIES = Set.of(
             ".git", "node_modules", "target", "build", ".gradle",
             ".idea", ".vscode", "dist", "bin", ".mvn",
-            "venv", "__pycache__", "coverage", "__MACOSX"
-    );
+            "venv", "__pycache__", "coverage", "__MACOSX");
 
-    // Corregido: Todas las cadenas están en minúsculas para coincidir exactamente con fileName.toLowerCase()
     private static final Set<String> MANIFEST_FILENAMES = Set.of(
             "pom.xml", "build.gradle", "build.gradle.kts", "package.json",
             "requirements.txt", "pipfile", "pyproject.toml", "dockerfile",
-            "docker-compose.yml", "docker-compose.yaml", "application.yml", "application.properties"
-    );
+            "docker-compose.yml", "docker-compose.yaml", "application.yml", "application.properties");
 
     public ScannedFileMap scan(Path rootPath) {
         if (rootPath == null || !Files.exists(rootPath)) {
-            throw new IllegalArgumentException("Root path for file scanning must exist");
+            throw new InvalidRepositoryException("Root path for file scanning must exist");
         }
 
         List<String> relativePaths = new ArrayList<>();
@@ -63,10 +57,10 @@ public class FileScannerStage {
                 @Override
                 public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) {
                     String fileName = file.getFileName().toString();
-                    if (fileName.startsWith("._") 
-                            || fileName.equalsIgnoreCase("Thumbs.db") 
-                            || fileName.equalsIgnoreCase("desktop.ini") 
-                            || fileName.equalsIgnoreCase(".DS_Store")) {
+                    if (fileName.startsWith("._")
+                            || fileName.equalsIgnoreCase("Thumbs.db")
+                            || fileName.equalsIgnoreCase(".DS_Store")
+                            || fileName.equalsIgnoreCase("desktop.ini")) {
                         return FileVisitResult.CONTINUE;
                     }
 
@@ -88,7 +82,7 @@ public class FileScannerStage {
                 }
             });
         } catch (IOException e) {
-            throw new RuntimeException("Error scanning repository files: " + e.getMessage(), e);
+            throw new RepositoryScanningException("Error scanning repository files: " + e.getMessage(), e);
         }
 
         return ScannedFileMap.builder()
