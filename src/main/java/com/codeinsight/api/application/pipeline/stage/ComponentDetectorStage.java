@@ -97,44 +97,56 @@ public class ComponentDetectorStage {
     }
 
     /**
-     * Analiza el texto del archivo para inferir el tipo de componente según
-     * anotaciones
-     * de Spring Boot (ej. @RestController, @Service) o Angular
-     * (ej. @Component, @Injectable).
+     * Analiza el texto del archivo para inferir el tipo de componente según anotaciones
+     * de Spring Boot (ej. @RestController, @Service) o Angular (ej. @Component, @Injectable).
+     * Omite comentarios JavaDoc y de línea para evitar falsos positivos.
      */
     private ComponentType detectComponentType(String relativePath, String content) {
         String lowerPath = relativePath.toLowerCase();
+        String cleanContent = stripComments(content);
 
         if (lowerPath.endsWith(".java")) {
-            if (hasAnnotation(content, "RestController") || hasAnnotation(content, "Controller")) {
+            if (hasAnnotation(cleanContent, "RestController") || hasAnnotation(cleanContent, "Controller")) {
                 return ComponentType.CONTROLLER;
             }
-            if (hasAnnotation(content, "Service")) {
+            if (hasAnnotation(cleanContent, "Service")) {
                 return ComponentType.SERVICE;
             }
-            if (hasAnnotation(content, "Repository") || hasInterfaceExtension(content, "JpaRepository")
-                    || hasInterfaceExtension(content, "CrudRepository")) {
+            if (hasAnnotation(cleanContent, "Repository") || hasInterfaceExtension(cleanContent, "JpaRepository")
+                    || hasInterfaceExtension(cleanContent, "CrudRepository")) {
                 return ComponentType.REPOSITORY;
             }
-            if (hasAnnotation(content, "Entity") || hasAnnotation(content, "Table")) {
+            if (hasAnnotation(cleanContent, "Entity") || hasAnnotation(cleanContent, "Table")) {
                 return ComponentType.ENTITY;
             }
-            if (hasAnnotation(content, "Configuration")) {
+            if (hasAnnotation(cleanContent, "Configuration")) {
                 return ComponentType.CONFIGURATION;
             }
-            if (hasAnnotation(content, "Component")) {
+            if (hasAnnotation(cleanContent, "Component")) {
                 return ComponentType.COMPONENT;
             }
         } else if (lowerPath.endsWith(".ts")) {
-            if (hasAnnotation(content, "Component")) {
+            if (hasAnnotation(cleanContent, "Component")) {
                 return ComponentType.FRONTEND_COMPONENT;
             }
-            if (hasAnnotation(content, "Injectable")) {
+            if (hasAnnotation(cleanContent, "Injectable")) {
                 return ComponentType.FRONTEND_SERVICE;
             }
         }
 
         return null;
+    }
+
+    /**
+     * Elimina los comentarios de bloque (/* ... *\/) y de línea (// ...) del contenido del archivo
+     * para evitar falsos positivos al detectar anotaciones presentes en JavaDocs o comentarios.
+     */
+    private String stripComments(String content) {
+        if (content == null) {
+            return "";
+        }
+        String noBlock = content.replaceAll("(?s)/\\*.*?\\*/", "");
+        return noBlock.replaceAll("//.*", "");
     }
 
     /**
