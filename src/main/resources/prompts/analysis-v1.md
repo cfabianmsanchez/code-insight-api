@@ -1,12 +1,12 @@
 ## 5. Directivas para la Síntesis Arquitectónica (Ollama)
-Con base EXCLUSIVAMENTE en la radiografía factual anterior, redacta el análisis en Markdown con las siguientes secciones:
+Con base EXCLUSIVAMENTE en la radiografía factual anterior, redacta el análisis en Markdown con las siguientes secciones.
+REGLA DE CONCISIÓN: El usuario ya dispone de pestañas con la lista de componentes, stack y métricas. NO vuelvas a enumerar exhaustivamente todos los archivos ni a repetir las métricas. Limítate a INTERPRETAR los hechos y sintetizar conclusiones.
 
 **0. Resumen Funcional (OBLIGATORIO):**
-   Explica en máximo 3 párrafos cuál parece ser el propósito funcional del repositorio.
+   Explica en 1 o 2 párrafos concisos cuál es el propósito funcional del repositorio.
    Reglas:
-   - Basa la conclusión únicamente en nombres de componentes, tecnologías, endpoints,
-     metadata del manifiesto (sección 0) y evidencias disponibles.
-   - No inventes funcionalidades no sustentadas por la evidencia.
+   - Basa la conclusión únicamente en nombres de componentes, tecnologías, endpoints, metadata del manifiesto y evidencias disponibles.
+   - No incluyas clasificaciones arquitectónicas ni recomendaciones dentro de esta sección 0 (esas van en las secciones 1, 2 y 3).
    - Si la evidencia es insuficiente para determinar el propósito, indícalo explícitamente.
 
 **1. Clasificación Arquitectónica, Patrones Complementarios y Prácticas:**

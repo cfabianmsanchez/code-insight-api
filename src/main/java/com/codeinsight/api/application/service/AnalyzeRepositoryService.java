@@ -18,6 +18,8 @@ import com.codeinsight.api.domain.model.ScannedFileMap;
 import com.codeinsight.api.domain.model.TechnologyStack;
 
 import java.time.LocalDateTime;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Servicio de Aplicación para el Análisis de Repositorios.
@@ -107,26 +109,33 @@ public class AnalyzeRepositoryService implements AnalyzeRepositoryUseCase {
     }
 
     /**
-     * Extrae el bloque de "Resumen Funcional" de la respuesta completa generada por la IA.
-     * Busca el encabezado "## 0." (o "## Resumen Funcional") y devuelve el texto limpio sin la línea de título.
+     * Extrae de forma estricta únicamente la sección 0 ("Resumen Funcional") de la respuesta del LLM.
+     * Trunca la cadena antes de que comience la sección 1 ("Clasificación Arquitectónica").
      *
      * @param aiSynthesis Respuesta completa generada por el LLM.
-     * @return Texto del resumen funcional, o {@code null} si no está presente.
+     * @return Texto exclusivo del resumen funcional, o {@code null} si está vacío.
      */
     private String extractFunctionalSummary(String aiSynthesis) {
         if (aiSynthesis == null || aiSynthesis.isBlank()) return null;
         int start = -1;
-        for (String marker : new String[]{"## 0.", "## Resumen Funcional", "**0. Resumen"}) {
+        for (String marker : new String[]{"## 0.", "### 0.", "## Resumen Funcional", "**0. Resumen", "0. Resumen"}) {
             int idx = aiSynthesis.indexOf(marker);
             if (idx >= 0) { start = idx; break; }
         }
-        if (start < 0) return null;
-        int nextSection = aiSynthesis.indexOf("\n## ", start + 4);
-        String block = nextSection > 0
-                ? aiSynthesis.substring(start, nextSection)
-                : aiSynthesis.substring(start);
+        if (start < 0) {
+            start = 0;
+        }
 
-        String cleaned = block.replaceFirst("(?i)^(##|\\*\\*)*\\s*0?\\.?\\s*Resumen\\s*Funcional.*(\\r?\\n)?", "").trim();
-        return cleaned.isBlank() ? block.trim() : cleaned;
+        String fromStart = aiSynthesis.substring(start);
+        String cleanedHeader = fromStart.replaceFirst("(?i)^(##|###|\\*\\*)*\\s*0?\\.?\\s*Resumen\\s*Funcional.*(\\r?\\n)?", "").trim();
+
+        // Delimitar el final de la sección 0 buscando el inicio de la sección 1 o cualquier encabezado subsiguiente
+        Pattern nextSectionPattern = Pattern.compile("(?m)^(?=#{1,3}\\s*1\\.|#{1,3}\\s+Clasificaci[oó]n|\\*\\*1\\.|1\\.\\s+Clasificaci[oó]n|#{1,3}\\s+)");
+        Matcher matcher = nextSectionPattern.matcher(cleanedHeader);
+        if (matcher.find() && matcher.start() > 0) {
+            cleanedHeader = cleanedHeader.substring(0, matcher.start()).trim();
+        }
+
+        return cleanedHeader.isBlank() ? null : cleanedHeader;
     }
 }

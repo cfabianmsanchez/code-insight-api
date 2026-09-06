@@ -28,7 +28,8 @@ public class FileScannerStage {
     private static final Set<String> IGNORED_DIRECTORIES = Set.of(
             ".git", "node_modules", "target", "build", ".gradle",
             ".idea", ".vscode", "dist", "bin", ".mvn",
-            "venv", "__pycache__", "coverage", "__MACOSX");
+            "venv", "__pycache__", "coverage", "__MACOSX",
+            ".angular", ".cache", "out-tsc", ".next", ".nuxt", ".svelte-kit");
 
     /** Nombres de archivos de manifiesto relevantes para la detección de dependencias y frameworks. */
     private static final Set<String> MANIFEST_FILENAMES = Set.of(
