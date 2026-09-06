@@ -2,13 +2,11 @@
 
 Backend desarrollado en **Java 17+** y **Spring Boot 3** que implementa **Arquitectura Hexagonal (Puertos y Adaptadores)** y un **Pipeline de Ingeniería Inversa de 7 Etapas** para el análisis estructural, de componentes, inferencia de relaciones y síntesis arquitectónica asistida por IA local a partir de repositorios GitHub o archivos ZIP.
 
-> **Status MVP 1.0**: ✅ **Cerrado y Funcional**. Backend completo con soporte determinístico multiplataforma, clasificación por `ProjectKind` (Backend, Frontend, Fullstack, Mobile), gestión de modelos IA vía `AiModelManagementPort` y síntesis IA resiliente.
-
 ---
 
 ## 🏛️ Arquitectura Hexagonal y Estructura del Proyecto
 
-El proyecto está diseñado bajo una estricta Arquitectura Hexagonal para desacoplar el dominio de negocio de los marcos de trabajo (frameworks) e infraestructura externa:
+El proyecto está diseñado bajo una Arquitectura Hexagonal para desacoplar el dominio de negocio de los marcos de trabajo (frameworks) e infraestructura externa:
 
 ```text
 com.codeinsight.api
@@ -97,7 +95,7 @@ El servicio `AnalyzeRepositoryService` ejecuta secuencialmente un pipeline deter
    - Identifica relaciones semánticas **Inbound** (Input Port → Implementación de Aplicación) y **Outbound** (Adaptador de Infraestructura → Output Port).
    - Detecta evidencias de ingeniería multiplataforma (archivos de test Java/JS/TS/Python, scripts de test en `package.json`, inyección de dependencias Spring).
 6. **`ContextBuilderStage`**: Ensambla el contexto factual combinando las evidencias determinísticas recopiladas con las plantillas versionadas de prompts cargadas a través de `PromptProvider`.
-7. **`OllamaAnalysisStage`**: Invoca el puerto `ArchitectureSynthesisPort` para comunicarse vía HTTP REST con el modelo Ollama local (`qwen2.5-coder`), sintetizar la evaluación arquitectónica en Markdown y extraer automáticamente la sección `0. Resumen Funcional` (`functionalSummary`). Incluye un modo de respaldo (fallback) resiliente.
+7. **`OllamaAnalysisStage`**: Invoca el puerto `ArchitectureSynthesisPort` para comunicarse vía HTTP REST con el modelo Ollama local, sintetizar la evaluación arquitectónica en Markdown y extraer automáticamente la sección `0. Resumen Funcional` (`functionalSummary`). Incluye un modo de respaldo (fallback) resiliente.
 
 ---
 
