@@ -6,24 +6,7 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * Catálogo centralizado de reglas de detección de evidencias arquitectónicas.
- * <p>
- * Para escalar el sistema (nuevo framework frontend, nuevo indicador de stack backend,
- * nueva capa arquitectónica, nuevos patrones de test) basta con editar las constantes
- * de esta clase; {@link com.codeinsight.api.application.pipeline.stage.ArchitectureEvidenceDetectorStage}
- * no necesita ningún cambio.
- * <p>
- * <b>Cómo agregar soporte a un nuevo framework frontend (ej. Qwik):</b>
- * <ol>
- *   <li>Añadir un valor a {@link FrontendFramework} (enum de dominio).</li>
- *   <li>Añadir una entrada {@link FrontendFrameworkRule} en {@link #FRONTEND_FRAMEWORK_RULES}
- *       con sus señales de detección. El orden de la lista determina la prioridad.</li>
- * </ol>
- * <b>Cómo agregar un nuevo indicador de backend (ej. Ruby con Gemfile):</b>
- * <ol>
- *   <li>Añadir la extensión a {@link #BACKEND_FILE_EXTENSIONS} o el nombre de archivo
- *       a {@link #BACKEND_FILE_NAMES}.</li>
- * </ol>
+ * Reglas para la detección de evidencias de arquitectura y clasificación de proyectos.
  */
 public final class ArchitectureDetectionRules {
 
@@ -137,17 +120,17 @@ public final class ArchitectureDetectionRules {
     // ─────────────────────────────────────────────────────────────────────────
 
     /**
-     * Extensiones de archivo que implican un proyecto backend Java, Go o .NET.
+     * Extensiones de archivo que implican un proyecto backend Java, Go, .NET o IaC.
      */
     public static final Set<String> BACKEND_FILE_EXTENSIONS = Set.of(
-            ".java", ".go", ".cs", ".csproj"
+            ".java", ".go", ".cs", ".csproj", ".tf", ".tfvars"
     );
 
     /**
      * Nombres de archivo de manifiesto que implican proyecto backend.
      */
     public static final Set<String> BACKEND_FILE_NAMES = Set.of(
-            "pom.xml", "build.gradle", "go.mod"
+            "pom.xml", "build.gradle", "go.mod", "main.tf", "terraform.tfstate"
     );
 
     /**
@@ -182,14 +165,10 @@ public final class ArchitectureDetectionRules {
     /**
      * Nombres de framework que el {@link com.codeinsight.api.domain.model.TechnologyStack} ya detectó
      * y que implican inequívocamente un proyecto backend.
-     * <p>
-     * Estos valores se usan para que {@code determineProjectKind} priorice el stack detectado
-     * sobre las heurísticas de extensión de archivo, evitando que proyectos NestJS/Express
-     * se clasifiquen como FRONTEND por tener archivos {@code .ts} / {@code .js}.
      */
     public static final Set<String> BACKEND_FRAMEWORKS = Set.of(
             "Spring Boot", "NestJS", "Express.js",
-            "FastAPI", "Django", "Flask"
+            "FastAPI", "Django", "Flask", "Terraform IaC"
     );
 
     /**

@@ -5,12 +5,7 @@ import com.codeinsight.api.domain.model.AnalysisContext;
 import org.springframework.stereotype.Component;
 
 /**
- * Etapa 7 del Pipeline: AI Synthesis Stage.
- *
- * Invoca el puerto de salida {@link ArchitectureSynthesisPort} para obtener la síntesis
- * técnica generada por el LLM a partir del contexto determinístico compilado en la Etapa 6.
- * Esta clase es agnóstica del motor de IA: delega completamente en el puerto de salida,
- * cuya implementación concreta (Ollama, OpenAI, Gemini, etc.) se inyecta por Spring.
+ * Etapa 7: Invoca la síntesis de arquitectura mediante el modelo de IA.
  */
 @Component
 public class AiSynthesisStage {

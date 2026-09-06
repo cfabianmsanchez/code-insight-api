@@ -29,23 +29,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * Etapa 5 del Pipeline: Architecture Evidence Detector.
- *
- * Analiza la estructura de carpetas, nombres de paquetes y el contenido de los
- * archivos fuente para recopilar evidencias objetivas:
- * <ul>
- *   <li>Palabras clave de arquitectura en rutas de directorios</li>
- *   <li>Distribución de componentes por capa</li>
- *   <li>Relaciones inbound (UseCase implementado por un Service de aplicación)</li>
- *   <li>Relaciones outbound (Port implementado por un Adapter de infraestructura)</li>
- *   <li>Evidencias de testing genérico (multiplataforma: Java, Node, Python)</li>
- *   <li>Metadata de manifiestos (package.json: nombre, descripción, entrada principal, script test)</li>
- *   <li>Evidencias de DI Spring (@Configuration, @Bean, constructor injection)</li>
- * </ul>
- * No emite conclusiones ni clasificaciones rígidas: solo reporta hechos verificables.
- * <p>
- * Esta clase es genérica: no contiene ningún dato de detección hardcodeado.
- * Todas las reglas y constantes viven en {@link ArchitectureDetectionRules}.
+ * Etapa 5: Recopila evidencias estructurales, relaciones de puertos y métricas de ingeniería.
  */
 @Component
 public class ArchitectureEvidenceDetectorStage {

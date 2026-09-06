@@ -21,13 +21,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Inspecciona el contenido de los archivos de código fuente para identificar y clasificar
- * sus componentes según estereotipos de framework (Controladores, Servicios, Repositorios,
- * Entidades, Beans de Configuración y componentes Frontend).
- * <p>
- * Esta clase es genérica: no contiene ninguna regla ni patrón hardcoded.
- * Todas las reglas de detección viven en {@link ComponentDetectionRules}.
- * Para agregar soporte a un nuevo lenguaje o patrón, edita esa clase.
+ * Etapa 4: Clasifica los componentes de código según estereotipos de arquitectura.
  */
 @Component
 public class ComponentDetectorStage {

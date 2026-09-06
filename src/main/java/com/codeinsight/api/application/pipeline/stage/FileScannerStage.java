@@ -31,11 +31,12 @@ public class FileScannerStage {
             "venv", "__pycache__", "coverage", "__MACOSX",
             ".angular", ".cache", "out-tsc", ".next", ".nuxt", ".svelte-kit");
 
-    /** Nombres de archivos de manifiesto relevantes para la detección de dependencias y frameworks. */
+    /** Archivos de manifiesto clave. */
     private static final Set<String> MANIFEST_FILENAMES = Set.of(
             "pom.xml", "build.gradle", "build.gradle.kts", "package.json",
             "requirements.txt", "pipfile", "pyproject.toml", "dockerfile",
-            "docker-compose.yml", "docker-compose.yaml", "application.yml", "application.properties");
+            "docker-compose.yml", "docker-compose.yaml", "application.yml", "application.properties",
+            "main.tf", "variables.tf", "outputs.tf", "provider.tf", "terraform.tfstate");
 
     /**
      * Escanea recursivamente el directorio raíz indicado omitiendo archivos y carpetas de ruido.

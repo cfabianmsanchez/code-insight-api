@@ -78,4 +78,32 @@ class TechnologyDetectorStageTest {
         assertEquals("Angular", techStack.getMainFramework());
         assertEquals("npm / Node.js", techStack.getBuildTool());
     }
+
+    @Test
+    void detect_shouldIdentifyTerraformIacAndProvidersFromTfFile(@TempDir Path tempDir) throws IOException {
+        Path mainTf = tempDir.resolve("main.tf");
+        String tfContent = """
+                provider "aws" {
+                  region = "us-east-1"
+                }
+                resource "aws_s3_bucket" "b" {
+                  bucket = "my-tf-test-bucket"
+                }
+                """;
+        Files.writeString(mainTf, tfContent);
+
+        ScannedFileMap fileMap = ScannedFileMap.builder()
+                .rootPath(tempDir)
+                .extensionCounts(Map.of(".tf", 5))
+                .manifestFiles(List.of(mainTf))
+                .build();
+
+        TechnologyStack techStack = stage.detect(fileMap);
+
+        assertNotNull(techStack);
+        assertEquals("HCL / Terraform", techStack.getMainLanguage());
+        assertEquals("Terraform IaC", techStack.getMainFramework());
+        assertEquals("Terraform CLI", techStack.getBuildTool());
+        assertTrue(techStack.getKeyLibraries().contains("AWS Provider"));
+    }
 }

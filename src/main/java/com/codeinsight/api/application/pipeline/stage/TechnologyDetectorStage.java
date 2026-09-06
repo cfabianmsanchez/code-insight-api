@@ -21,17 +21,7 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * Analiza de forma determinista los archivos de manifiesto (pom.xml,
- * package.json, etc.) y el conteo de extensiones para identificar el lenguaje
- * principal,
- * framework, herramienta de build, bases de datos y librerías clave del
- * proyecto.
- * 
- * Esta clase es genérica: no contiene ninguna regla ni keyword hardcoded.
- * Todas las reglas de detección viven en {@link TechnologyDetectionRules}.
- * Para agregar soporte a un nuevo framework, base de datos o tipo de
- * manifiesto,
- * edita esa clase.
+ * Etapa 3: Detecta el stack tecnológico a partir de manifiestos y extensiones.
  */
 @Component
 public class TechnologyDetectorStage {
@@ -73,8 +63,9 @@ public class TechnologyDetectorStage {
     private void processManifest(Path manifest, DetectionState state) {
         String fileName = manifest.getFileName().toString().toLowerCase();
 
-        // Normalizar variantes de build.gradle (ej. build.gradle.kts)
-        String lookupKey = fileName.startsWith("build.gradle") ? "build.gradle" : fileName;
+        // Normalizar variantes de build.gradle y archivos .tf de Terraform
+        String lookupKey = fileName.startsWith("build.gradle") ? "build.gradle"
+                : (fileName.endsWith(".tf") ? "main.tf" : fileName);
 
         ManifestRules rules = TechnologyDetectionRules.MANIFEST_RULES_BY_FILE.get(lookupKey);
         if (rules == null) {

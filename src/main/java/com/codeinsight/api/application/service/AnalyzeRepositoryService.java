@@ -22,11 +22,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * Servicio de Aplicación para el Análisis de Repositorios.
- * 
- * Implementa el caso de uso {@link AnalyzeRepositoryUseCase} y orquesta la ejecución
- * secuencial de todas las etapas del pipeline de ingeniería inversa.
- * Garantiza la limpieza automática del directorio temporal al concluir la ejecución.
+ * Servicio de aplicación que orquesta el pipeline de análisis de repositorios.
  */
 public class AnalyzeRepositoryService implements AnalyzeRepositoryUseCase {
 

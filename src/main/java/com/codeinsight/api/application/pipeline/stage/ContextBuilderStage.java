@@ -12,12 +12,7 @@ import com.codeinsight.api.domain.model.TechnologyStack;
 import org.springframework.stereotype.Component;
 
 /**
- * Consolida todas las evidencias determinísticas recopiladas (Etapas 2 a 5) en
- * un prompt
- * estructurado en formato Markdown optimizado para ser consumido por el motor
- * de síntesis IA.
- * Utiliza {@link PromptProvider} para cargar las plantillas de prompts
- * versionadas fuera del código Java.
+ * Etapa 6: Ensamblado del prompt estructurado y contexto factual para el LLM.
  */
 @Component
 public class ContextBuilderStage {

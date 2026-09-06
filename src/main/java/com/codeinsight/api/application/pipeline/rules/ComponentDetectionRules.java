@@ -9,21 +9,7 @@ import java.util.function.Predicate;
 import java.util.regex.Pattern;
 
 /**
- * Catálogo centralizado de reglas de detección de componentes.
- * <p>
- * Para escalar el sistema (nuevo lenguaje, nuevo tipo de componente, nuevo patrón de ruta)
- * basta con editar las constantes de esta clase; {@link com.codeinsight.api.application.pipeline.stage.ComponentDetectorStage}
- * no necesita ningún cambio.
- * <p>
- * <b>Cómo agregar soporte a un nuevo lenguaje:</b>
- * <ol>
- *   <li>Añadir su extensión a {@link #SOURCE_EXTENSIONS}.</li>
- *   <li>Crear una lista {@code List<ComponentRule>} con sus patrones y añadirla a {@link #RULES_BY_EXTENSION}.</li>
- * </ol>
- * <b>Cómo agregar un nuevo patrón de componente existente:</b>
- * <ol>
- *   <li>Añadir la entrada correspondiente en la lista del lenguaje afectado.</li>
- * </ol>
+ * Reglas y patrones para la detección de componentes de código fuente.
  */
 public final class ComponentDetectionRules {
 
