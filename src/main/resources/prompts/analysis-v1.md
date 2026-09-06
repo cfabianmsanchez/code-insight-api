@@ -2,14 +2,14 @@
 Con base EXCLUSIVAMENTE en la radiografía factual anterior, redacta el análisis en Markdown con las siguientes secciones.
 REGLA DE CONCISIÓN: El usuario ya dispone de pestañas con la lista de componentes, stack y métricas. NO vuelvas a enumerar exhaustivamente todos los archivos ni a repetir las métricas. Limítate a INTERPRETAR los hechos y sintetizar conclusiones.
 
-**0. Resumen Funcional (OBLIGATORIO):**
+**1. Resumen Funcional (OBLIGATORIO):**
    Explica en 1 o 2 párrafos concisos cuál es el propósito funcional del repositorio.
    Reglas:
    - Basa la conclusión únicamente en nombres de componentes, tecnologías, endpoints, metadata del manifiesto y evidencias disponibles.
-   - No incluyas clasificaciones arquitectónicas ni recomendaciones dentro de esta sección 0 (esas van en las secciones 1, 2 y 3).
+   - No incluyas clasificaciones arquitectónicas ni recomendaciones dentro de esta sección 1 (esas van en las secciones 2, 3 y 4).
    - Si la evidencia es insuficiente para determinar el propósito, indícalo explícitamente.
 
-**1. Clasificación Arquitectónica, Patrones Complementarios y Prácticas:**
+**2. Clasificación Arquitectónica, Patrones Complementarios y Prácticas:**
    Evalúa el repositorio y estructura la respuesta en 3 subpartes claras:
    
    **a. Estilo Arquitectónico Principal:**
@@ -24,11 +24,11 @@ REGLA DE CONCISIÓN: El usuario ya dispone de pestañas con la lista de componen
    **c. Prácticas de Framework, Estado y Routing:**
    - Identifica mecanismos y prácticas observadas (ej. **Angular Signals / Reactivity**, **Standalone Components**, **Lazy Loading / Routing**, **Spring Dependency Injection**), citando archivos concretos (ej. `app.routes.ts`, `*.facade.ts`).
 
-**2. Organización de Capas y Estructura por Módulos/Features:**
+**3. Organización de Capas y Estructura por Módulos/Features:**
    Evalúa la jerarquía estructural y el desacoplamiento por módulos/features y capas (ej. App Shell, Shared UI, Features, Data Access, Facade, Models).
    REGLA DE CAPAS: NO confundas componentes UI individuales (como `header` o `loader`) con capas completas de arquitectura; clasifícalos adecuadamente dentro de la capa Shared UI o UI.
 
-**3. Recomendaciones Técnicas (entre 0 y 3 recomendaciones):**
+**4. Recomendaciones Técnicas (entre 0 y 3 recomendaciones):**
    Emite entre 0 y 3 recomendaciones técnicas de alto impacto (máximo 3, solo si están verdaderamente sustentadas).
    Reglas obligatorias para cada recomendación:
    - DEBE estar respaldada por una evidencia FACTUAL CONCRETA de las secciones anteriores (ej. "0 archivos de prueba implementados a pesar de contar con script 'ng test' en package.json").

@@ -94,7 +94,12 @@ public class TechnologyDetectorStage {
     DetectionState state
   ) {
     if (rules.buildTool() != null) {
-      state.buildTool = rules.buildTool();
+      if (
+        "Desconocido".equals(state.buildTool) ||
+        isPrimaryBuildTool(rules.buildTool(), state.mainLanguage)
+      ) {
+        state.buildTool = rules.buildTool();
+      }
     }
 
     // Framework principal: se aplica la primera regla que coincide
@@ -131,6 +136,33 @@ public class TechnologyDetectorStage {
     java.util.List<String> keywords
   ) {
     return keywords.stream().anyMatch(content::contains);
+  }
+
+  private boolean isPrimaryBuildTool(
+    String candidateBuildTool,
+    String mainLanguage
+  ) {
+    if ("Java".equals(mainLanguage)) {
+      return (
+        "Maven".equals(candidateBuildTool) ||
+        "Gradle".equals(candidateBuildTool)
+      );
+    }
+    if ("Python".equals(mainLanguage)) {
+      return "pip / Python".equals(candidateBuildTool);
+    }
+    if (
+      "TypeScript".equals(mainLanguage) || "JavaScript".equals(mainLanguage)
+    ) {
+      return "npm / Node.js".equals(candidateBuildTool);
+    }
+    if ("HCL / Terraform".equals(mainLanguage)) {
+      return "Terraform CLI".equals(candidateBuildTool);
+    }
+    if ("Go".equals(mainLanguage)) {
+      return "Go Modules".equals(candidateBuildTool);
+    }
+    return false;
   }
 
   /**

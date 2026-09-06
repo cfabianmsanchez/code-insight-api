@@ -110,4 +110,31 @@ class TechnologyDetectorStageTest {
     assertEquals("Terraform CLI", techStack.getBuildTool());
     assertTrue(techStack.getKeyLibraries().contains("AWS Provider"));
   }
+
+  @Test
+  void detect_shouldPrioritizeMavenOverNpmInJavaProjectWithPackageJson(
+    @TempDir Path tempDir
+  ) throws IOException {
+    Path pomPath = tempDir.resolve("pom.xml");
+    Files.writeString(
+      pomPath,
+      "<project><dependencies></dependencies></project>"
+    );
+
+    Path pkgPath = tempDir.resolve("package.json");
+    Files.writeString(pkgPath, "{\"name\": \"java-web-hybrid\"}");
+
+    // Manifests in order where package.json comes AFTER pom.xml
+    ScannedFileMap fileMap = ScannedFileMap.builder()
+      .rootPath(tempDir)
+      .extensionCounts(Map.of(".java", 15, ".ts", 2))
+      .manifestFiles(List.of(pomPath, pkgPath))
+      .build();
+
+    TechnologyStack techStack = stage.detect(fileMap);
+
+    assertNotNull(techStack);
+    assertEquals("Java", techStack.getMainLanguage());
+    assertEquals("Maven", techStack.getBuildTool());
+  }
 }

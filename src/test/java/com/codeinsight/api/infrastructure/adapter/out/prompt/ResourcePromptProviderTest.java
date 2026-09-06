@@ -41,8 +41,8 @@ class ResourcePromptProviderTest {
     assertThat(directives).contains(
       "Directivas para la Síntesis Arquitectónica"
     );
-    assertThat(directives).contains("0. Resumen Funcional (OBLIGATORIO)");
-    assertThat(directives).contains("3. Recomendaciones Técnicas");
+    assertThat(directives).contains("1. Resumen Funcional (OBLIGATORIO)");
+    assertThat(directives).contains("4. Recomendaciones Técnicas");
   }
 
   @Test

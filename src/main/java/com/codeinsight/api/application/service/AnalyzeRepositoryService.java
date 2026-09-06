@@ -120,8 +120,8 @@ public class AnalyzeRepositoryService implements AnalyzeRepositoryUseCase {
   }
 
   /**
-   * Extrae de forma estricta únicamente la sección 0 ("Resumen Funcional") de la respuesta del LLM.
-   * Trunca la cadena antes de que comience la sección 1 ("Clasificación Arquitectónica").
+   * Extrae de forma estricta únicamente la sección de "Resumen Funcional" de la respuesta del LLM.
+   * Trunca la cadena antes de que comience la sección de "Clasificación Arquitectónica".
    *
    * @param aiSynthesis Respuesta completa generada por el LLM.
    * @return Texto exclusivo del resumen funcional, o {@code null} si está vacío.
@@ -130,6 +130,10 @@ public class AnalyzeRepositoryService implements AnalyzeRepositoryUseCase {
     if (aiSynthesis == null || aiSynthesis.isBlank()) return null;
     int start = -1;
     for (String marker : new String[] {
+      "## 1.",
+      "### 1.",
+      "**1. Resumen",
+      "1. Resumen",
       "## 0.",
       "### 0.",
       "## Resumen Funcional",
@@ -149,14 +153,14 @@ public class AnalyzeRepositoryService implements AnalyzeRepositoryUseCase {
     String fromStart = aiSynthesis.substring(start);
     String cleanedHeader = fromStart
       .replaceFirst(
-        "(?i)^(##|###|\\*\\*)*\\s*0?\\.?\\s*Resumen\\s*Funcional.*(\\r?\\n)?",
+        "(?i)^(##|###|\\*\\*)*\\s*[01]?\\.?\\s*Resumen\\s*Funcional.*(\\r?\\n)?",
         ""
       )
       .trim();
 
-    // Delimitar el final de la sección 0 buscando el inicio de la sección 1 o cualquier encabezado subsiguiente
+    // Delimitar el final del resumen funcional buscando el inicio de la sección 2 (Clasificación Arquitectónica)
     Pattern nextSectionPattern = Pattern.compile(
-      "(?m)^(?=#{1,3}\\s*1\\.|#{1,3}\\s+Clasificaci[oó]n|\\*\\*1\\.|1\\.\\s+Clasificaci[oó]n|#{1,3}\\s+)"
+      "(?m)^(?=#{1,3}\\s*2\\.|#{1,3}\\s+Clasificaci[oó]n|\\*\\*2\\.|2\\.\\s+Clasificaci[oó]n|#{1,3}\\s*1\\.|#{1,3}\\s+)"
     );
     Matcher matcher = nextSectionPattern.matcher(cleanedHeader);
     if (matcher.find() && matcher.start() > 0) {
