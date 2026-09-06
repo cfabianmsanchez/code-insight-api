@@ -83,6 +83,7 @@ public class AnalyzeRepositoryService implements AnalyzeRepositoryUseCase {
 
             // Etapa 7: Ollama Analysis (Síntesis de arquitectura asistida por IA)
             String aiSynthesis = ollamaAnalysis.analyze(analysisContext);
+            String aiModelUsed = ollamaAnalysis.getActiveModel();
 
             // Extraer el resumen funcional de la síntesis generada por Ollama
             String functionalSummary = extractFunctionalSummary(aiSynthesis);
@@ -98,6 +99,7 @@ public class AnalyzeRepositoryService implements AnalyzeRepositoryUseCase {
                     .analysisContext(analysisContext)
                     .aiSynthesis(aiSynthesis)
                     .functionalSummary(functionalSummary)
+                    .aiModelUsed(aiModelUsed)
                     .extensionCounts(scannedFiles.getExtensionCounts())
                     .timestamp(LocalDateTime.now())
                     .build();
@@ -106,26 +108,25 @@ public class AnalyzeRepositoryService implements AnalyzeRepositoryUseCase {
 
     /**
      * Extrae el bloque de "Resumen Funcional" de la respuesta completa de Ollama.
-     * Busca el encabezado "## 0." (o "## Resumen Funcional") y devuelve el texto hasta
-     * el siguiente encabezado de nivel 2. Si no se encuentra, retorna {@code null}.
+     * Busca el encabezado "## 0." (o "## Resumen Funcional") y devuelve el texto limpio sin la línea de título.
      *
      * @param aiSynthesis Respuesta completa generada por el LLM.
      * @return Texto del resumen funcional, o {@code null} si no está presente.
      */
     private String extractFunctionalSummary(String aiSynthesis) {
         if (aiSynthesis == null || aiSynthesis.isBlank()) return null;
-        // Buscar el bloque que inicia con ## 0. o ## Resumen Funcional
         int start = -1;
         for (String marker : new String[]{"## 0.", "## Resumen Funcional", "**0. Resumen"}) {
             int idx = aiSynthesis.indexOf(marker);
             if (idx >= 0) { start = idx; break; }
         }
         if (start < 0) return null;
-        // Encontrar el inicio del siguiente encabezado ## (nivel 2)
         int nextSection = aiSynthesis.indexOf("\n## ", start + 4);
         String block = nextSection > 0
                 ? aiSynthesis.substring(start, nextSection)
                 : aiSynthesis.substring(start);
-        return block.trim();
+
+        String cleaned = block.replaceFirst("(?i)^(##|\\*\\*)*\\s*0?\\.?\\s*Resumen\\s*Funcional.*(\\r?\\n)?", "").trim();
+        return cleaned.isBlank() ? block.trim() : cleaned;
     }
 }

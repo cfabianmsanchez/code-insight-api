@@ -99,11 +99,20 @@ public class FileScannerStage {
             throw new RepositoryScanningException("Error scanning repository files: " + e.getMessage(), e);
         }
 
+        Map<String, Integer> sortedExtensionCounts = extensionCounts.entrySet().stream()
+                .sorted(Map.Entry.<String, Integer>comparingByValue().reversed())
+                .collect(java.util.stream.Collectors.toMap(
+                        Map.Entry::getKey,
+                        Map.Entry::getValue,
+                        (e1, e2) -> e1,
+                        java.util.LinkedHashMap::new
+                ));
+
         return ScannedFileMap.builder()
                 .rootPath(rootPath)
                 .totalFiles(counts[0])
                 .totalDirectories(counts[1])
-                .extensionCounts(extensionCounts)
+                .extensionCounts(sortedExtensionCounts)
                 .relativeFilePaths(relativePaths)
                 .manifestFiles(manifestFiles)
                 .build();

@@ -167,6 +167,19 @@ public class ContextBuilderStage {
                             .append(eng.constructorInjectionDetected() ? "DETECTADA" : "No observada").append("\n");
                 }
             }
+
+            // 4d. Clasificación del Tipo de Proyecto y Evidencias Frontend
+            userPromptBuilder.append("\n### 4d. Clasificación de Proyecto y Evidencias Frontend\n");
+            userPromptBuilder.append("- **Tipo de Proyecto Inferido (ProjectKind)**: ").append(architectureEvidence.getProjectKind()).append("\n");
+            if (architectureEvidence.getFrontendFramework() != null && architectureEvidence.getFrontendFramework() != com.codeinsight.api.domain.model.FrontendFramework.NONE) {
+                userPromptBuilder.append("- **Framework Frontend Detectado**: ").append(architectureEvidence.getFrontendFramework()).append("\n");
+            }
+            if (architectureEvidence.getFrontendEvidenceNotes() != null && !architectureEvidence.getFrontendEvidenceNotes().isEmpty()) {
+                userPromptBuilder.append("- **Evidencias Específicas de Arquitectura Frontend**:\n");
+                for (String note : architectureEvidence.getFrontendEvidenceNotes()) {
+                    userPromptBuilder.append("  - ").append(note).append("\n");
+                }
+            }
         }
         userPromptBuilder.append("\n");
 

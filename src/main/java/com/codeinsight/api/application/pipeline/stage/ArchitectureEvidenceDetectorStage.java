@@ -5,6 +5,8 @@ import com.codeinsight.api.domain.model.ArchitectureEvidenceResult;
 import com.codeinsight.api.domain.model.ArchitectureEvidenceResult.EngineeringEvidence;
 import com.codeinsight.api.domain.model.ComponentAnalysisResult;
 import com.codeinsight.api.domain.model.DetectedComponent;
+import com.codeinsight.api.domain.model.FrontendFramework;
+import com.codeinsight.api.domain.model.ProjectKind;
 import com.codeinsight.api.domain.model.ScannedFileMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -168,7 +170,15 @@ public class ArchitectureEvidenceDetectorStage {
         // 4. Evidencias de ingeniería: testing genérico + DI + metadata de manifiesto
         EngineeringEvidence engineeringEvidence = detectEngineeringEvidence(scannedFiles);
 
-        // 5. Generar notas de evidencia puramente factuales
+        // 5. Detectar ProjectKind y FrontendFramework
+        ProjectKind projectKind = determineProjectKind(scannedFiles, engineeringEvidence);
+        FrontendFramework frontendFramework = determineFrontendFramework(scannedFiles, engineeringEvidence);
+
+        // 6. Detectar Evidencias de Arquitectura Frontend
+        List<String> frontendEvidenceNotes = detectFrontendArchitectureEvidence(scannedFiles, projectKind, frontendFramework);
+
+        // 7. Generar notas de evidencia puramente factuales
+        evidenceNotes.add("Clasificación de tipo de proyecto: " + projectKind + " (Framework Frontend: " + frontendFramework + ")");
         evidenceNotes.add("Identificadas " + structuralPaths.size()
                 + " rutas estructurales distintas con profundidad máxima de " + maxDepth + " segmentos.");
         if (!detectedKeywords.isEmpty()) {
@@ -207,6 +217,9 @@ public class ArchitectureEvidenceDetectorStage {
                 .inboundPortImplementations(portRelations.inbound())
                 .outboundAdapterImplementations(portRelations.outbound())
                 .engineeringEvidence(engineeringEvidence)
+                .projectKind(projectKind)
+                .frontendFramework(frontendFramework)
+                .frontendEvidenceNotes(frontendEvidenceNotes)
                 .build();
     }
 
@@ -478,5 +491,202 @@ public class ArchitectureEvidenceDetectorStage {
             if (LAYER_KEYWORDS.contains(nameLower)) return nameLower;
         }
         return parent.getFileName() != null ? parent.getFileName().toString() : "root";
+    }
+
+    // ── Clasificación de Proyecto y Framework Frontend ─────────────────────────
+
+    private ProjectKind determineProjectKind(ScannedFileMap scannedFiles, EngineeringEvidence engEvidence) {
+        if (scannedFiles == null || scannedFiles.getAllFilePaths() == null) {
+            return ProjectKind.UNKNOWN;
+        }
+
+        boolean hasJava = false;
+        boolean hasPythonBackend = false;
+        boolean hasGo = false;
+        boolean hasDotNet = false;
+        boolean hasFrontendFiles = false;
+        boolean hasPackageJson = engEvidence != null && (engEvidence.projectName() != null || engEvidence.testScriptDetected());
+
+        for (Path filePath : scannedFiles.getAllFilePaths()) {
+            String fileName = filePath.getFileName().toString().toLowerCase();
+            String pathLower = filePath.toString().replace("\\", "/").toLowerCase();
+
+            if (fileName.endsWith(".java") || fileName.equals("pom.xml") || fileName.equals("build.gradle")) {
+                hasJava = true;
+            }
+            if (fileName.endsWith(".go") || fileName.equals("go.mod")) {
+                hasGo = true;
+            }
+            if (fileName.endsWith(".cs") || fileName.endsWith(".csproj")) {
+                hasDotNet = true;
+            }
+            if (fileName.endsWith(".py") && (pathLower.contains("django") || pathLower.contains("fastapi") || pathLower.contains("flask") || fileName.equals("requirements.txt"))) {
+                hasPythonBackend = true;
+            }
+            if (fileName.endsWith(".ts") || fileName.endsWith(".js") || fileName.endsWith(".html") || fileName.endsWith(".scss")
+                    || fileName.endsWith(".vue") || fileName.endsWith(".jsx") || fileName.endsWith(".tsx")) {
+                if (!pathLower.contains("node_modules")) {
+                    hasFrontendFiles = true;
+                }
+            }
+            if (fileName.contains("ionic") || fileName.contains("capacitor") || fileName.contains("cordova")) {
+                return ProjectKind.MOBILE;
+            }
+        }
+
+        boolean hasBackend = hasJava || hasGo || hasDotNet || hasPythonBackend;
+
+        if (hasBackend && hasFrontendFiles) {
+            return ProjectKind.FULLSTACK;
+        } else if (hasBackend) {
+            return ProjectKind.BACKEND;
+        } else if (hasFrontendFiles || hasPackageJson) {
+            return ProjectKind.FRONTEND;
+        }
+
+        return ProjectKind.UNKNOWN;
+    }
+
+    private FrontendFramework determineFrontendFramework(ScannedFileMap scannedFiles, EngineeringEvidence engEvidence) {
+        if (scannedFiles == null || scannedFiles.getAllFilePaths() == null) {
+            return FrontendFramework.NONE;
+        }
+
+        boolean hasAngularJson = false;
+        boolean hasIonic = false;
+        boolean hasNext = false;
+        boolean hasVue = false;
+        boolean hasReact = false;
+        boolean hasSvelte = false;
+
+        for (Path filePath : scannedFiles.getAllFilePaths()) {
+            String fileName = filePath.getFileName().toString().toLowerCase();
+            String pathLower = filePath.toString().replace("\\", "/").toLowerCase();
+
+            if (fileName.equals("angular.json")) hasAngularJson = true;
+            if (fileName.contains("capacitor.config") || fileName.contains("ionic.config")) hasIonic = true;
+            if (fileName.contains("next.config") || pathLower.contains("/next/")) hasNext = true;
+            if (fileName.endsWith(".vue") || fileName.contains("vite.config")) {
+                if (fileName.endsWith(".vue")) hasVue = true;
+            }
+            if (fileName.endsWith(".jsx") || fileName.endsWith(".tsx")) hasReact = true;
+            if (fileName.endsWith(".svelte") || fileName.contains("svelte.config")) hasSvelte = true;
+
+            if (fileName.endsWith(".ts") || fileName.endsWith(".js")) {
+                try {
+                    String content = Files.readString(filePath);
+                    if (content.contains("@angular/core") || content.contains("@Component")) hasAngularJson = true;
+                    if (content.contains("@ionic/")) hasIonic = true;
+                    if (content.contains("from 'react'") || content.contains("from \"react\"")) hasReact = true;
+                    if (content.contains("from 'vue'") || content.contains("from \"vue\"")) hasVue = true;
+                    if (content.contains("from 'next'") || content.contains("from \"next\"")) hasNext = true;
+                } catch (IOException ignored) {}
+            }
+        }
+
+        if (hasIonic) return FrontendFramework.IONIC;
+        if (hasNext) return FrontendFramework.NEXT_JS;
+        if (hasAngularJson) return FrontendFramework.ANGULAR;
+        if (hasVue) return FrontendFramework.VUE;
+        if (hasReact) return FrontendFramework.REACT;
+        if (hasSvelte) return FrontendFramework.SVELTE;
+
+        return FrontendFramework.NONE;
+    }
+
+    private List<String> detectFrontendArchitectureEvidence(ScannedFileMap scannedFiles, ProjectKind projectKind, FrontendFramework framework) {
+        List<String> notes = new ArrayList<>();
+        if (scannedFiles == null || scannedFiles.getAllFilePaths() == null) {
+            return notes;
+        }
+
+        Set<String> featureDirs = new TreeSet<>();
+        boolean sharedLayerDetected = false;
+        boolean coreLayerDetected = false;
+        boolean dataAccessLayerDetected = false;
+        boolean pagesDetected = false;
+        boolean facadeDetected = false;
+        List<String> facadeClassNames = new ArrayList<>();
+        boolean signalsDetected = false;
+        boolean standaloneComponentsDetected = false;
+        Set<String> lazyRouteFiles = new TreeSet<>();
+
+        for (Path filePath : scannedFiles.getAllFilePaths()) {
+            String pathStr = filePath.toString().replace("\\", "/");
+            String pathLower = pathStr.toLowerCase();
+            String fileName = filePath.getFileName().toString();
+
+            if (pathLower.contains("/features/") || pathLower.contains("/feature/")) {
+                int idx = pathLower.indexOf("/features/");
+                if (idx == -1) idx = pathLower.indexOf("/feature/");
+                if (idx != -1) {
+                    String sub = pathStr.substring(idx + 1);
+                    String[] parts = sub.split("/");
+                    if (parts.length >= 2) {
+                        featureDirs.add(parts[0] + "/" + parts[1]);
+                    }
+                }
+            }
+
+            if (pathLower.contains("/shared/") || pathLower.contains("/shared")) sharedLayerDetected = true;
+            if (pathLower.contains("/core/") || pathLower.contains("/core")) coreLayerDetected = true;
+            if (pathLower.contains("/data-access/") || pathLower.contains("/services/") || pathLower.contains("/api/")) dataAccessLayerDetected = true;
+            if (pathLower.contains("/pages/") || pathLower.contains("/views/") || pathLower.contains("/containers/")) pagesDetected = true;
+            if (pathLower.contains("facade") || fileName.toLowerCase().endsWith("facade.ts")) facadeDetected = true;
+
+            if (fileName.endsWith(".ts") || fileName.endsWith(".js") || fileName.endsWith(".tsx") || fileName.endsWith(".vue")) {
+                try {
+                    String content = Files.readString(filePath);
+
+                    if (fileName.toLowerCase().endsWith("facade.ts") || content.contains("Facade")) {
+                        Matcher m = Pattern.compile("export\\s+class\\s+(\\w+Facade)").matcher(content);
+                        if (m.find()) {
+                            facadeClassNames.add(m.group(1));
+                        }
+                    }
+
+                    if (content.contains("signal(") || content.contains("computed(") || content.contains("asReadonly()")) {
+                        signalsDetected = true;
+                    }
+                    if (content.contains("standalone: true") || content.contains("standalone:true")) {
+                        standaloneComponentsDetected = true;
+                    }
+                    if (content.contains("loadComponent") || content.contains("loadChildren") || content.contains("React.lazy")) {
+                        Path relPath = scannedFiles.getRootPath() != null ? scannedFiles.getRootPath().relativize(filePath) : filePath;
+                        lazyRouteFiles.add(relPath.toString().replace("\\", "/"));
+                    }
+                } catch (IOException ignored) {}
+            }
+        }
+
+        if (!featureDirs.isEmpty()) {
+            notes.add("Arquitectura basada en características (Feature-based) detectada con carpetas: " + String.join(", ", featureDirs));
+        }
+        if (sharedLayerDetected) {
+            notes.add("Capa o módulo compartido (shared) detectado.");
+        }
+        if (coreLayerDetected) {
+            notes.add("Capa o módulo central (core) detectado.");
+        }
+        if (dataAccessLayerDetected) {
+            notes.add("Capa de acceso a datos / servicios (data-access / services / api) separada.");
+        }
+        if (pagesDetected) {
+            notes.add("Componentes de página / contenedor (pages / views) identificados.");
+        }
+        if (facadeDetected || !facadeClassNames.isEmpty()) {
+            notes.add("Patrón Facade detectado" + (!facadeClassNames.isEmpty() ? " (" + String.join(", ", facadeClassNames) + ")" : "") + " para encapsular estado y servicios.");
+        }
+        if (signalsDetected) {
+            notes.add("Uso de reactividad / Signals (signal, computed, asReadonly) detectado para gestión de estado.");
+        }
+        if (standaloneComponentsDetected) {
+            notes.add("Componentes Standalone (standalone: true) detectados.");
+        }
+        if (!lazyRouteFiles.isEmpty()) {
+            notes.add("Carga diferida de rutas (Lazy Loading via loadComponent / loadChildren) detectada explícitamente en: " + String.join(", ", lazyRouteFiles));
+        }
+
+        return notes;
     }
 }

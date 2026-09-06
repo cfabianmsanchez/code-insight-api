@@ -9,23 +9,30 @@ Con base EXCLUSIVAMENTE en la radiografía factual anterior, redacta el análisi
    - No inventes funcionalidades no sustentadas por la evidencia.
    - Si la evidencia es insuficiente para determinar el propósito, indícalo explícitamente.
 
-**1. Clasificación Arquitectónica:**
-   Determina el estilo o patrón arquitectónico más probable. Incluye:
-   - Estilo principal inferido
-   - Nivel de confianza estimado (de 0.0 a 1.0)
-   - Evidencias CONCRETAS de rutas y componentes que lo sustentan (cita textualmente)
-   - Como máximo 2 estilos arquitectónicos alternativos, SOLO si existe evidencia concreta que los sustente.
-     Para cada alternativa, cita esa evidencia. Si no hay evidencia suficiente, responde "No concluyente".
-   - Aspectos no verificables con la evidencia disponible
+**1. Clasificación Arquitectónica, Patrones Complementarios y Prácticas:**
+   Evalúa el repositorio y estructura la respuesta en 3 subpartes claras:
+   
+   **a. Estilo Arquitectónico Principal:**
+   - Estilo principal inferido (ej. Feature-based Architecture para frontend, Hexagonal Architecture para backend).
+   - Nivel de confianza estimado (de 0.0 a 0.95; NUNCA asignes 1.0).
+   - Evidencias CONCRETAS de rutas, directorios y componentes que lo sustentan (cita textualmente).
+   
+   **b. Patrones de Diseño Complementarios:**
+   - Identifica patrones secundarios o complementarios detectados (ej. **Facade Pattern**, **Ports & Adapters**, **Repository Pattern**), citando la evidencia específica (clases, interfaces o servicios).
+   - NOTA: No trates patrones complementarios (como Facade) como competidores del estilo principal (como Feature-based), sino como patrones de diseño aplicados dentro del mismo.
+   
+   **c. Prácticas de Framework, Estado y Routing:**
+   - Identifica mecanismos y prácticas observadas (ej. **Angular Signals / Reactivity**, **Standalone Components**, **Lazy Loading / Routing**, **Spring Dependency Injection**), citando archivos concretos (ej. `app.routes.ts`, `*.facade.ts`).
 
-**2. Organización de Capas:**
-   Evalúa el desacoplamiento aparente según la distribución de componentes, paquetes y relaciones detectadas.
+**2. Organización de Capas y Estructura por Módulos/Features:**
+   Evalúa la jerarquía estructural y el desacoplamiento por módulos/features y capas (ej. App Shell, Shared UI, Features, Data Access, Facade, Models).
+   REGLA DE CAPAS: NO confundas componentes UI individuales (como `header` o `loader`) con capas completas de arquitectura; clasifícalos adecuadamente dentro de la capa Shared UI o UI.
 
-**3. Recomendaciones Técnicas:**
-   Emite EXACTAMENTE 3 recomendaciones técnicas de alto impacto.
+**3. Recomendaciones Técnicas (entre 0 y 3 recomendaciones):**
+   Emite entre 0 y 3 recomendaciones técnicas de alto impacto (máximo 3, solo si están verdaderamente sustentadas).
    Reglas obligatorias para cada recomendación:
-   - Debe estar respaldada por una evidencia CONCRETA de las secciones anteriores.
-   - NO recomiendes implementar tecnologías, prácticas o patrones cuya presencia ya esté confirmada en las evidencias (sección 4c).
-   - La ausencia de una evidencia NO significa ausencia de la práctica; no especules sobre lo que no está en el reporte.
-   - Si no puedes formular 3 recomendaciones basadas en evidencia concreta, indica "No concluyente" en lugar de inventar.
-   - Devuelve exactamente 3 recomendaciones, no más, no menos.
+   - DEBE estar respaldada por una evidencia FACTUAL CONCRETA de las secciones anteriores (ej. "0 archivos de prueba implementados a pesar de contar con script 'ng test' en package.json").
+   - REGLA DE VALIDACIÓN: Si la evidencia de una recomendación es "No concluyente", esa recomendación es INVÁLIDA y NO debes emitirla.
+   - Cita únicamente nombres de archivos reales que figuren en las evidencias. NO inventes archivos inexistentes como `app.module.ts`.
+   - NO recomiendes implementar tecnologías o patrones cuya presencia ya esté confirmada en las evidencias (sección 4c/4d).
+   - Devuelve las recomendaciones que realmente tengan fundamento (pueden ser 0, 1, 2 o 3). Es preferible devolver 1 o 2 sólidas antes que forzar 3 con datos falsos.

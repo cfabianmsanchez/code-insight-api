@@ -32,6 +32,7 @@ logging:
 ollama:
   base-url: ${OLLAMA_BASE_URL:http://localhost:11434}
   model: ${OLLAMA_MODEL:qwen2.5-coder}
+  available-models: ${OLLAMA_AVAILABLE_MODELS:qwen2.5-coder,llama3,deepseek-coder,codellama,mistral}
 
 # AI Prompt Templates Configuration
 ai:

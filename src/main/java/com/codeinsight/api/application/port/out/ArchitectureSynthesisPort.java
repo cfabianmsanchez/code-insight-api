@@ -16,4 +16,8 @@ public interface ArchitectureSynthesisPort {
      * @return El reporte en formato Markdown generado por el modelo de IA o una síntesis de respaldo.
      */
     String synthesize(String systemPrompt, String userPrompt);
+
+    default String getActiveModel() {
+        return "Ollama";
+    }
 }

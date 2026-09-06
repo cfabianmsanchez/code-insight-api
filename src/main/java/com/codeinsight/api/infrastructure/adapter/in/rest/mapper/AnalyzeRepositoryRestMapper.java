@@ -62,6 +62,7 @@ public class AnalyzeRepositoryRestMapper {
                 .analysisContext(result.getAnalysisContext())
                 .aiSynthesis(result.getAiSynthesis())
                 .functionalSummary(result.getFunctionalSummary())
+                .aiModelUsed(result.getAiModelUsed())
                 .extensionCounts(result.getExtensionCounts())
                 .timestamp(result.getTimestamp())
                 .build();

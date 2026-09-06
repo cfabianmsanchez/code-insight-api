@@ -36,4 +36,8 @@ public class OllamaAnalysisStage {
         }
         return synthesisPort.synthesize(context.getSystemPrompt(), context.getUserPrompt());
     }
+
+    public String getActiveModel() {
+        return synthesisPort.getActiveModel();
+    }
 }
