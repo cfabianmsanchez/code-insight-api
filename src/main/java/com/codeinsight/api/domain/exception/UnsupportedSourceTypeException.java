@@ -5,7 +5,7 @@ package com.codeinsight.api.domain.exception;
  */
 public class UnsupportedSourceTypeException extends DomainException {
 
-    public UnsupportedSourceTypeException(String message) {
-        super(message);
-    }
+  public UnsupportedSourceTypeException(String message) {
+    super(message);
+  }
 }

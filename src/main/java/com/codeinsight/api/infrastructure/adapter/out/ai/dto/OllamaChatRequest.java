@@ -10,7 +10,7 @@ import java.util.List;
  * @param stream   Booleano para habilitar o deshabilitar streaming (fijado en false).
  */
 public record OllamaChatRequest(
-        String model,
-        List<OllamaMessage> messages,
-        boolean stream
+  String model,
+  List<OllamaMessage> messages,
+  boolean stream
 ) {}

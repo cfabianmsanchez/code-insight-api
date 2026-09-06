@@ -5,9 +5,8 @@ import com.codeinsight.api.application.port.out.CodeFetcherPort;
 import com.codeinsight.api.domain.exception.InvalidRepositoryException;
 import com.codeinsight.api.domain.exception.UnsupportedSourceTypeException;
 import com.codeinsight.api.domain.model.FetchCodeRequest;
-import org.springframework.stereotype.Component;
-
 import java.util.List;
+import org.springframework.stereotype.Component;
 
 /**
  * Se encarga de seleccionar el adaptador de adquisición correspondiente y
@@ -17,34 +16,39 @@ import java.util.List;
 @Component
 public class RepositoryLoaderStage {
 
-    /** Lista de cargadores de código inyectados por Spring. */
-    private final List<CodeFetcherPort> fetchers;
+  /** Lista de cargadores de código inyectados por Spring. */
+  private final List<CodeFetcherPort> fetchers;
 
-    /**
-     * Crea una instancia de la Etapa 1 inyectando la lista de cargadores
-     * disponibles.
-     */
-    public RepositoryLoaderStage(List<CodeFetcherPort> fetchers) {
-        this.fetchers = fetchers;
+  /**
+   * Crea una instancia de la Etapa 1 inyectando la lista de cargadores
+   * disponibles.
+   */
+  public RepositoryLoaderStage(List<CodeFetcherPort> fetchers) {
+    this.fetchers = fetchers;
+  }
+
+  /**
+   * Ejecuta la adquisición de código delegando en el cargador correspondiente.
+   *
+   * @param request Solicitud con la fuente de código a cargar.
+   * @return {@link TempCodeDirectory} con la ruta física y el tipo de fuente.
+   */
+  public TempCodeDirectory loadRepository(FetchCodeRequest request) {
+    if (request == null) {
+      throw new InvalidRepositoryException("FetchCodeRequest cannot be null");
     }
 
-    /**
-     * Ejecuta la adquisición de código delegando en el cargador correspondiente.
-     *
-     * @param request Solicitud con la fuente de código a cargar.
-     * @return {@link TempCodeDirectory} con la ruta física y el tipo de fuente.
-     */
-    public TempCodeDirectory loadRepository(FetchCodeRequest request) {
-        if (request == null) {
-            throw new InvalidRepositoryException("FetchCodeRequest cannot be null");
-        }
+    CodeFetcherPort fetcher = fetchers
+      .stream()
+      .filter(f -> f.supports(request))
+      .findFirst()
+      .orElseThrow(() ->
+        new UnsupportedSourceTypeException(
+          "No supported fetcher found for source type: " +
+            request.getSourceType()
+        )
+      );
 
-        CodeFetcherPort fetcher = fetchers.stream()
-                .filter(f -> f.supports(request))
-                .findFirst()
-                .orElseThrow(() -> new UnsupportedSourceTypeException(
-                        "No supported fetcher found for source type: " + request.getSourceType()));
-
-        return fetcher.fetchCode(request);
-    }
+    return fetcher.fetchCode(request);
+  }
 }

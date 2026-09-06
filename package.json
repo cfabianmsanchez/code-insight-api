@@ -1,0 +1,25 @@
+{
+  "name": "code-insight-api",
+  "version": "1.0.0",
+  "description": "Backend desarrollado en **Java 17+** y **Spring Boot 3** que implementa **Arquitectura Hexagonal (Puertos y Adaptadores)** y un **Pipeline de Ingeniería Inversa de 7 Etapas** para el análisis estructural, de componentes, inferencia de relaciones y síntesis arquitectónica asistida por IA local a partir de repositorios GitHub o archivos ZIP.",
+  "main": "index.js",
+  "scripts": {
+    "format": "prettier --plugin prettier-plugin-java --write \"src/**/*.java\"",
+    "lint": "mvn compile"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/cfabianmsanchez/code-insight-api.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/cfabianmsanchez/code-insight-api/issues"
+  },
+  "homepage": "https://github.com/cfabianmsanchez/code-insight-api#readme",
+  "devDependencies": {
+    "prettier": "^3.9.6",
+    "prettier-plugin-java": "^2.10.3"
+  }
+}

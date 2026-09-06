@@ -5,11 +5,11 @@ package com.codeinsight.api.domain.exception;
  */
 public class RepositoryScanningException extends DomainException {
 
-    public RepositoryScanningException(String message) {
-        super(message);
-    }
+  public RepositoryScanningException(String message) {
+    super(message);
+  }
 
-    public RepositoryScanningException(String message, Throwable cause) {
-        super(message, cause);
-    }
+  public RepositoryScanningException(String message, Throwable cause) {
+    super(message, cause);
+  }
 }

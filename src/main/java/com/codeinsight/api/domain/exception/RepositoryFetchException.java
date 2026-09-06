@@ -5,11 +5,11 @@ package com.codeinsight.api.domain.exception;
  */
 public class RepositoryFetchException extends DomainException {
 
-    public RepositoryFetchException(String message) {
-        super(message);
-    }
+  public RepositoryFetchException(String message) {
+    super(message);
+  }
 
-    public RepositoryFetchException(String message, Throwable cause) {
-        super(message, cause);
-    }
+  public RepositoryFetchException(String message, Throwable cause) {
+    super(message, cause);
+  }
 }

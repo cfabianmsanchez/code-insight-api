@@ -3,8 +3,6 @@ package com.codeinsight.api.application.pipeline.stage;
 import com.codeinsight.api.domain.exception.InvalidRepositoryException;
 import com.codeinsight.api.domain.exception.RepositoryScanningException;
 import com.codeinsight.api.domain.model.ScannedFileMap;
-import org.springframework.stereotype.Component;
-
 import java.io.IOException;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
@@ -16,6 +14,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import org.springframework.stereotype.Component;
 
 /**
  * Recorre el árbol de directorios efímero, filtra carpetas de construido/ruido (.git, target, etc.)
@@ -24,108 +23,163 @@ import java.util.Set;
 @Component
 public class FileScannerStage {
 
-    /** Carpetas de compilación, control de versiones y entornos virtuales que deben ser ignoradas. */
-    private static final Set<String> IGNORED_DIRECTORIES = Set.of(
-            ".git", "node_modules", "target", "build", ".gradle",
-            ".idea", ".vscode", "dist", "bin", ".mvn",
-            "venv", "__pycache__", "coverage", "__MACOSX",
-            ".angular", ".cache", "out-tsc", ".next", ".nuxt", ".svelte-kit");
+  /** Carpetas de compilación, control de versiones y entornos virtuales que deben ser ignoradas. */
+  private static final Set<String> IGNORED_DIRECTORIES = Set.of(
+    ".git",
+    "node_modules",
+    "target",
+    "build",
+    ".gradle",
+    ".idea",
+    ".vscode",
+    "dist",
+    "bin",
+    ".mvn",
+    "venv",
+    "__pycache__",
+    "coverage",
+    "__MACOSX",
+    ".angular",
+    ".cache",
+    "out-tsc",
+    ".next",
+    ".nuxt",
+    ".svelte-kit"
+  );
 
-    /** Archivos de manifiesto clave. */
-    private static final Set<String> MANIFEST_FILENAMES = Set.of(
-            "pom.xml", "build.gradle", "build.gradle.kts", "package.json",
-            "requirements.txt", "pipfile", "pyproject.toml", "dockerfile",
-            "docker-compose.yml", "docker-compose.yaml", "application.yml", "application.properties",
-            "main.tf", "variables.tf", "outputs.tf", "provider.tf", "terraform.tfstate");
+  /** Archivos de manifiesto clave. */
+  private static final Set<String> MANIFEST_FILENAMES = Set.of(
+    "pom.xml",
+    "build.gradle",
+    "build.gradle.kts",
+    "package.json",
+    "requirements.txt",
+    "pipfile",
+    "pyproject.toml",
+    "dockerfile",
+    "docker-compose.yml",
+    "docker-compose.yaml",
+    "application.yml",
+    "application.properties",
+    "main.tf",
+    "variables.tf",
+    "outputs.tf",
+    "provider.tf",
+    "terraform.tfstate"
+  );
 
-    /**
-     * Escanea recursivamente el directorio raíz indicado omitiendo archivos y carpetas de ruido.
-     *
-     * @param rootPath Ruta raíz del directorio a escanear.
-     * @return {@link ScannedFileMap} con el mapa de archivos escaneados, totales y conteo de extensiones.
-     */
-    public ScannedFileMap scan(Path rootPath) {
-        if (rootPath == null || !Files.exists(rootPath)) {
-            throw new InvalidRepositoryException("Root path for file scanning must exist");
-        }
-
-        List<String> relativePaths = new ArrayList<>();
-        List<Path> manifestFiles = new ArrayList<>();
-        Map<String, Integer> extensionCounts = new HashMap<>();
-        int[] counts = new int[2]; // counts[0] = files, counts[1] = dirs
-
-        try {
-            Files.walkFileTree(rootPath, new SimpleFileVisitor<Path>() {
-                @Override
-                public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) {
-                    String dirName = dir.getFileName() != null ? dir.getFileName().toString() : "";
-                    if (IGNORED_DIRECTORIES.contains(dirName)) {
-                        return FileVisitResult.SKIP_SUBTREE;
-                    }
-                    if (!dir.equals(rootPath)) {
-                        counts[1]++;
-                    }
-                    return FileVisitResult.CONTINUE;
-                }
-
-                @Override
-                public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) {
-                    String fileName = file.getFileName().toString();
-                    if (fileName.startsWith("._")
-                            || fileName.equalsIgnoreCase("Thumbs.db")
-                            || fileName.equalsIgnoreCase(".DS_Store")
-                            || fileName.equalsIgnoreCase("desktop.ini")) {
-                        return FileVisitResult.CONTINUE;
-                    }
-
-                    counts[0]++;
-                    Path relative = rootPath.relativize(file);
-                    String relString = relative.toString();
-                    relativePaths.add(relString);
-
-                    if (MANIFEST_FILENAMES.contains(fileName.toLowerCase())) {
-                        manifestFiles.add(file);
-                    }
-
-                    String ext = extractExtension(fileName);
-                    if (!ext.isEmpty()) {
-                        extensionCounts.put(ext, extensionCounts.getOrDefault(ext, 0) + 1);
-                    }
-
-                    return FileVisitResult.CONTINUE;
-                }
-            });
-        } catch (IOException e) {
-            throw new RepositoryScanningException("Error scanning repository files: " + e.getMessage(), e);
-        }
-
-        Map<String, Integer> sortedExtensionCounts = extensionCounts.entrySet().stream()
-                .sorted(Map.Entry.<String, Integer>comparingByValue().reversed())
-                .collect(java.util.stream.Collectors.toMap(
-                        Map.Entry::getKey,
-                        Map.Entry::getValue,
-                        (e1, e2) -> e1,
-                        java.util.LinkedHashMap::new
-                ));
-
-        return ScannedFileMap.builder()
-                .rootPath(rootPath)
-                .totalFiles(counts[0])
-                .totalDirectories(counts[1])
-                .extensionCounts(sortedExtensionCounts)
-                .relativeFilePaths(relativePaths)
-                .manifestFiles(manifestFiles)
-                .build();
+  /**
+   * Escanea recursivamente el directorio raíz indicado omitiendo archivos y carpetas de ruido.
+   *
+   * @param rootPath Ruta raíz del directorio a escanear.
+   * @return {@link ScannedFileMap} con el mapa de archivos escaneados, totales y conteo de extensiones.
+   */
+  public ScannedFileMap scan(Path rootPath) {
+    if (rootPath == null || !Files.exists(rootPath)) {
+      throw new InvalidRepositoryException(
+        "Root path for file scanning must exist"
+      );
     }
 
-    /**
-     * Extrae la extensión en minúsculas de un nombre de archivo (ejemplo: ".java").
-     */
-    private String extractExtension(String fileName) {
-        int dotIndex = fileName.lastIndexOf('.');
-        if (dotIndex > 0 && dotIndex < fileName.length() - 1) {
-            return fileName.substring(dotIndex).toLowerCase();
+    List<String> relativePaths = new ArrayList<>();
+    List<Path> manifestFiles = new ArrayList<>();
+    Map<String, Integer> extensionCounts = new HashMap<>();
+    int[] counts = new int[2]; // counts[0] = files, counts[1] = dirs
+
+    try {
+      Files.walkFileTree(
+        rootPath,
+        new SimpleFileVisitor<Path>() {
+          @Override
+          public FileVisitResult preVisitDirectory(
+            Path dir,
+            BasicFileAttributes attrs
+          ) {
+            String dirName =
+              dir.getFileName() != null ? dir.getFileName().toString() : "";
+            if (IGNORED_DIRECTORIES.contains(dirName)) {
+              return FileVisitResult.SKIP_SUBTREE;
+            }
+            if (!dir.equals(rootPath)) {
+              counts[1]++;
+            }
+            return FileVisitResult.CONTINUE;
+          }
+
+          @Override
+          public FileVisitResult visitFile(
+            Path file,
+            BasicFileAttributes attrs
+          ) {
+            String fileName = file.getFileName().toString();
+            if (
+              fileName.startsWith("._") ||
+              fileName.equalsIgnoreCase("Thumbs.db") ||
+              fileName.equalsIgnoreCase(".DS_Store") ||
+              fileName.equalsIgnoreCase("desktop.ini")
+            ) {
+              return FileVisitResult.CONTINUE;
+            }
+
+            counts[0]++;
+            Path relative = rootPath.relativize(file);
+            String relString = relative.toString();
+            relativePaths.add(relString);
+
+            if (MANIFEST_FILENAMES.contains(fileName.toLowerCase())) {
+              manifestFiles.add(file);
+            }
+
+            String ext = extractExtension(fileName);
+            if (!ext.isEmpty()) {
+              extensionCounts.put(
+                ext,
+                extensionCounts.getOrDefault(ext, 0) + 1
+              );
+            }
+
+            return FileVisitResult.CONTINUE;
+          }
         }
-        return "";
+      );
+    } catch (IOException e) {
+      throw new RepositoryScanningException(
+        "Error scanning repository files: " + e.getMessage(),
+        e
+      );
     }
+
+    Map<String, Integer> sortedExtensionCounts = extensionCounts
+      .entrySet()
+      .stream()
+      .sorted(Map.Entry.<String, Integer>comparingByValue().reversed())
+      .collect(
+        java.util.stream.Collectors.toMap(
+          Map.Entry::getKey,
+          Map.Entry::getValue,
+          (e1, e2) -> e1,
+          java.util.LinkedHashMap::new
+        )
+      );
+
+    return ScannedFileMap.builder()
+      .rootPath(rootPath)
+      .totalFiles(counts[0])
+      .totalDirectories(counts[1])
+      .extensionCounts(sortedExtensionCounts)
+      .relativeFilePaths(relativePaths)
+      .manifestFiles(manifestFiles)
+      .build();
+  }
+
+  /**
+   * Extrae la extensión en minúsculas de un nombre de archivo (ejemplo: ".java").
+   */
+  private String extractExtension(String fileName) {
+    int dotIndex = fileName.lastIndexOf('.');
+    if (dotIndex > 0 && dotIndex < fileName.length() - 1) {
+      return fileName.substring(dotIndex).toLowerCase();
+    }
+    return "";
+  }
 }

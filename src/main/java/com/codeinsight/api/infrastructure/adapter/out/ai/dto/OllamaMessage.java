@@ -6,7 +6,4 @@ package com.codeinsight.api.infrastructure.adapter.out.ai.dto;
  * @param role    Rol del emisor ("system", "user", "assistant").
  * @param content Contenido de texto del mensaje.
  */
-public record OllamaMessage(
-        String role,
-        String content
-) {}
+public record OllamaMessage(String role, String content) {}

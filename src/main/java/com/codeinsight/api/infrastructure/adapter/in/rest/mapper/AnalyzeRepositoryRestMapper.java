@@ -6,65 +6,69 @@ import com.codeinsight.api.domain.model.RepositoryAnalysisResult;
 import com.codeinsight.api.domain.model.SourceType;
 import com.codeinsight.api.infrastructure.adapter.in.rest.dto.GithubAnalysisRequestDto;
 import com.codeinsight.api.infrastructure.adapter.in.rest.dto.RepositoryAnalysisResponseDto;
+import java.io.IOException;
 import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.IOException;
-
 /**
  * Mapeador de la Capa de Infraestructura REST.
- * 
+ *
  * Convierte objetos DTOs HTTP a modelos de dominio ({@link FetchCodeRequest})
  * y resultados de dominio a respuestas DTOs REST ({@link RepositoryAnalysisResponseDto}).
  */
 @Component
 public class AnalyzeRepositoryRestMapper {
 
-    /**
-     * Mapea una solicitud DTO de GitHub al objeto de solicitud del dominio.
-     */
-    public FetchCodeRequest toDomain(GithubAnalysisRequestDto dto) {
-        return FetchCodeRequest.builder()
-                .projectKey(dto.getProjectKey())
-                .sourceType(SourceType.GITHUB_REPO)
-                .repoUrl(dto.getRepoUrl())
-                .build();
-    }
+  /**
+   * Mapea una solicitud DTO de GitHub al objeto de solicitud del dominio.
+   */
+  public FetchCodeRequest toDomain(GithubAnalysisRequestDto dto) {
+    return FetchCodeRequest.builder()
+      .projectKey(dto.getProjectKey())
+      .sourceType(SourceType.GITHUB_REPO)
+      .repoUrl(dto.getRepoUrl())
+      .build();
+  }
 
-    /**
-     * Mapea un archivo .ZIP subido vía multipart/form-data al objeto de solicitud del dominio.
-     *
-     * @throws InvalidRepositoryException Si el archivo .ZIP está vacío o es nulo.
-     */
-    public FetchCodeRequest toDomain(String projectKey, MultipartFile file) throws IOException {
-        if (file == null || file.isEmpty()) {
-            throw new InvalidRepositoryException("Uploaded ZIP file cannot be empty");
-        }
-        return FetchCodeRequest.builder()
-                .projectKey(projectKey)
-                .sourceType(SourceType.ZIP_FILE)
-                .zipInputStream(file.getInputStream())
-                .build();
+  /**
+   * Mapea un archivo .ZIP subido vía multipart/form-data al objeto de solicitud del dominio.
+   *
+   * @throws InvalidRepositoryException Si el archivo .ZIP está vacío o es nulo.
+   */
+  public FetchCodeRequest toDomain(String projectKey, MultipartFile file)
+    throws IOException {
+    if (file == null || file.isEmpty()) {
+      throw new InvalidRepositoryException("Uploaded ZIP file cannot be empty");
     }
+    return FetchCodeRequest.builder()
+      .projectKey(projectKey)
+      .sourceType(SourceType.ZIP_FILE)
+      .zipInputStream(file.getInputStream())
+      .build();
+  }
 
-    /**
-     * Transforma el resultado del análisis de dominio a un DTO de respuesta para la API REST.
-     */
-    public RepositoryAnalysisResponseDto toResponseDto(RepositoryAnalysisResult result) {
-        return RepositoryAnalysisResponseDto.builder()
-                .projectKey(result.getProjectKey())
-                .sourceType(result.getSourceType() != null ? result.getSourceType().name() : null)
-                .totalFiles(result.getTotalFiles())
-                .totalDirectories(result.getTotalDirectories())
-                .technologyStack(result.getTechnologyStack())
-                .componentAnalysis(result.getComponentAnalysis())
-                .architectureEvidence(result.getArchitectureEvidence())
-                .analysisContext(result.getAnalysisContext())
-                .aiSynthesis(result.getAiSynthesis())
-                .functionalSummary(result.getFunctionalSummary())
-                .aiModelUsed(result.getAiModelUsed())
-                .extensionCounts(result.getExtensionCounts())
-                .timestamp(result.getTimestamp())
-                .build();
-    }
+  /**
+   * Transforma el resultado del análisis de dominio a un DTO de respuesta para la API REST.
+   */
+  public RepositoryAnalysisResponseDto toResponseDto(
+    RepositoryAnalysisResult result
+  ) {
+    return RepositoryAnalysisResponseDto.builder()
+      .projectKey(result.getProjectKey())
+      .sourceType(
+        result.getSourceType() != null ? result.getSourceType().name() : null
+      )
+      .totalFiles(result.getTotalFiles())
+      .totalDirectories(result.getTotalDirectories())
+      .technologyStack(result.getTechnologyStack())
+      .componentAnalysis(result.getComponentAnalysis())
+      .architectureEvidence(result.getArchitectureEvidence())
+      .analysisContext(result.getAnalysisContext())
+      .aiSynthesis(result.getAiSynthesis())
+      .functionalSummary(result.getFunctionalSummary())
+      .aiModelUsed(result.getAiModelUsed())
+      .extensionCounts(result.getExtensionCounts())
+      .timestamp(result.getTimestamp())
+      .build();
+  }
 }

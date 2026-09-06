@@ -5,11 +5,11 @@ package com.codeinsight.api.domain.exception;
  */
 public class InvalidRepositoryException extends DomainException {
 
-    public InvalidRepositoryException(String message) {
-        super(message);
-    }
+  public InvalidRepositoryException(String message) {
+    super(message);
+  }
 
-    public InvalidRepositoryException(String message, Throwable cause) {
-        super(message, cause);
-    }
+  public InvalidRepositoryException(String message, Throwable cause) {
+    super(message, cause);
+  }
 }

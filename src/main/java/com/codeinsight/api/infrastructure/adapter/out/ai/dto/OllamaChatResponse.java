@@ -8,7 +8,7 @@ package com.codeinsight.api.infrastructure.adapter.out.ai.dto;
  * @param done    Indica si la generación ha concluido.
  */
 public record OllamaChatResponse(
-        String model,
-        OllamaMessage message,
-        boolean done
+  String model,
+  OllamaMessage message,
+  boolean done
 ) {}
