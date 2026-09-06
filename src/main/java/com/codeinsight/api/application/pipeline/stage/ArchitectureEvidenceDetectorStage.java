@@ -596,6 +596,9 @@ public class ArchitectureEvidenceDetectorStage {
 
     private List<String> detectFrontendArchitectureEvidence(ScannedFileMap scannedFiles, ProjectKind projectKind, FrontendFramework framework) {
         List<String> notes = new ArrayList<>();
+        if (projectKind == ProjectKind.BACKEND) {
+            return notes;
+        }
         if (scannedFiles == null || scannedFiles.getAllFilePaths() == null) {
             return notes;
         }
