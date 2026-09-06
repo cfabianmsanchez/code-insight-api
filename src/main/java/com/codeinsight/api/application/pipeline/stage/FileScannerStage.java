@@ -96,8 +96,18 @@ public class FileScannerStage {
             BasicFileAttributes attrs
           ) {
             String dirName =
-              dir.getFileName() != null ? dir.getFileName().toString() : "";
-            if (IGNORED_DIRECTORIES.contains(dirName)) {
+              dir.getFileName() != null
+                ? dir.getFileName().toString().toLowerCase()
+                : "";
+            String pathStr = dir.toString().replace("\\", "/").toLowerCase();
+
+            if (
+              IGNORED_DIRECTORIES.contains(dirName) ||
+              pathStr.contains("/.angular/") ||
+              pathStr.contains("/.cache/") ||
+              pathStr.contains("/node_modules/") ||
+              pathStr.contains("/dist/")
+            ) {
               return FileVisitResult.SKIP_SUBTREE;
             }
             if (!dir.equals(rootPath)) {

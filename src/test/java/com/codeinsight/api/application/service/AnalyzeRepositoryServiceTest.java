@@ -135,4 +135,96 @@ class AnalyzeRepositoryServiceTest {
       result.getAiSynthesis()
     );
   }
+
+  @Test
+  void analyzeRepository_shouldSeparateFunctionalSummaryAndRenumberTechnicalSynthesis(
+    @TempDir Path tempDir
+  ) throws IOException {
+    when(fetcherPort.supports(any())).thenReturn(true);
+    TempCodeDirectory mockTempDir = new TempCodeDirectory(
+      tempDir,
+      SourceType.GITHUB_REPO
+    );
+    when(fetcherPort.fetchCode(any())).thenReturn(mockTempDir);
+
+    RepositoryLoaderStage loaderStage = new RepositoryLoaderStage(
+      List.of(fetcherPort)
+    );
+    FileScannerStage scannerStage = new FileScannerStage();
+    TechnologyDetectorStage techStage = new TechnologyDetectorStage();
+    ComponentDetectorStage componentStage = new ComponentDetectorStage();
+    ArchitectureEvidenceDetectorStage archStage =
+      new ArchitectureEvidenceDetectorStage();
+    com.codeinsight.api.application.ai.PromptProvider promptProvider =
+      new com.codeinsight.api.infrastructure.adapter.out.prompt.ResourcePromptProvider(
+        new org.springframework.core.io.DefaultResourceLoader(),
+        "v1"
+      );
+    (
+      (com.codeinsight.api.infrastructure.adapter.out.prompt.ResourcePromptProvider) promptProvider
+    ).init();
+    ContextBuilderStage contextStage = new ContextBuilderStage(promptProvider);
+    ArchitectureSynthesisPort mockSynthesisPort =
+      new ArchitectureSynthesisPort() {
+        @Override
+        public String synthesize(String sys, String user) {
+          return """
+          1. Resumen Funcional (OBLIGATORIO):
+          Este es un backend de ejemplo.
+
+          2. Clasificación Arquitectónica:
+          a. Estilo principal: Hexagonal Architecture.
+
+          3. Organización de Capas:
+          Capa de aplicación y dominio.
+
+          4. Recomendaciones Técnicas:
+          Agregar pruebas unitarias.
+          """;
+        }
+
+        @Override
+        public String getActiveModel() {
+          return "mock-model";
+        }
+      };
+    AiSynthesisStage aiStage = new AiSynthesisStage(mockSynthesisPort);
+
+    AnalyzeRepositoryService service = new AnalyzeRepositoryService(
+      loaderStage,
+      scannerStage,
+      techStage,
+      componentStage,
+      archStage,
+      contextStage,
+      aiStage
+    );
+
+    FetchCodeRequest request = FetchCodeRequest.builder()
+      .projectKey("renumber-test")
+      .sourceType(SourceType.GITHUB_REPO)
+      .repoUrl("https://github.com/user/demo.git")
+      .build();
+
+    RepositoryAnalysisResult result = service.analyzeRepository(request);
+
+    assertNotNull(result);
+    assertEquals(
+      "Este es un backend de ejemplo.",
+      result.getFunctionalSummary()
+    );
+    assertNotNull(result.getAiSynthesis());
+    org.junit.jupiter.api.Assertions.assertTrue(
+      result.getAiSynthesis().startsWith("1. Clasificación Arquitectónica:"),
+      "aiSynthesis debe arrancar en 1. Clasificación Arquitectónica"
+    );
+    org.junit.jupiter.api.Assertions.assertTrue(
+      result.getAiSynthesis().contains("2. Organización de Capas:"),
+      "aiSynthesis debe tener 2. Organización de Capas"
+    );
+    org.junit.jupiter.api.Assertions.assertTrue(
+      result.getAiSynthesis().contains("3. Recomendaciones Técnicas:"),
+      "aiSynthesis debe tener 3. Recomendaciones Técnicas"
+    );
+  }
 }

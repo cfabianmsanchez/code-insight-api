@@ -100,6 +100,7 @@ public class AnalyzeRepositoryService implements AnalyzeRepositoryUseCase {
 
       // Extraer el resumen funcional de la síntesis generada por la IA
       String functionalSummary = extractFunctionalSummary(aiSynthesisReport);
+      String cleanAiSynthesis = extractTechnicalSynthesis(aiSynthesisReport);
 
       return RepositoryAnalysisResult.builder()
         .projectKey(request.getProjectKey())
@@ -110,13 +111,70 @@ public class AnalyzeRepositoryService implements AnalyzeRepositoryUseCase {
         .componentAnalysis(componentAnalysis)
         .architectureEvidence(architectureEvidence)
         .analysisContext(analysisContext)
-        .aiSynthesis(aiSynthesisReport)
+        .aiSynthesis(cleanAiSynthesis)
         .functionalSummary(functionalSummary)
         .aiModelUsed(aiModelUsed)
         .extensionCounts(scannedFiles.getExtensionCounts())
         .timestamp(LocalDateTime.now())
         .build();
     }
+  }
+
+  /**
+   * Extrae la síntesis técnica (secciones a partir de "Clasificación Arquitectónica"),
+   * omitiendo el Resumen Funcional para evitar la duplicación de contenido en el informe,
+   * y renumera las secciones (2->1, 3->2, 4->3) para que el informe técnico comience desde el numeral 1.
+   *
+   * @param aiSynthesis Respuesta completa generada por el LLM.
+   * @return Texto a partir de la Sección 2 renumerada desde 1, o la respuesta original si no se detecta la división.
+   */
+  private String extractTechnicalSynthesis(String aiSynthesis) {
+    if (aiSynthesis == null || aiSynthesis.isBlank()) return aiSynthesis;
+
+    Pattern section2Pattern = Pattern.compile(
+      "(?m)^(?=#{1,3}\\s*2\\.|#{1,3}\\s+Clasificaci[oó]n|\\*\\*2\\.|2\\.\\s+Clasificaci[oó]n)"
+    );
+    Matcher matcher = section2Pattern.matcher(aiSynthesis);
+    if (matcher.find()) {
+      String technicalPart = aiSynthesis.substring(matcher.start()).trim();
+
+      // Renumerar secciones para que inicien en 1:
+      // 2. -> 1.
+      technicalPart = technicalPart.replaceAll(
+        "(?m)^(\\s*#{1,3}\\s*)2\\.\\s*",
+        "$11. "
+      );
+      technicalPart = technicalPart.replaceAll(
+        "(?m)^(\\s*\\*\\*)2\\.\\s*",
+        "$11. "
+      );
+      technicalPart = technicalPart.replaceAll("(?m)^2\\.\\s+", "1. ");
+
+      // 3. -> 2.
+      technicalPart = technicalPart.replaceAll(
+        "(?m)^(\\s*#{1,3}\\s*)3\\.\\s*",
+        "$12. "
+      );
+      technicalPart = technicalPart.replaceAll(
+        "(?m)^(\\s*\\*\\*)3\\.\\s*",
+        "$12. "
+      );
+      technicalPart = technicalPart.replaceAll("(?m)^3\\.\\s+", "2. ");
+
+      // 4. -> 3.
+      technicalPart = technicalPart.replaceAll(
+        "(?m)^(\\s*#{1,3}\\s*)4\\.\\s*",
+        "$13. "
+      );
+      technicalPart = technicalPart.replaceAll(
+        "(?m)^(\\s*\\*\\*)4\\.\\s*",
+        "$13. "
+      );
+      technicalPart = technicalPart.replaceAll("(?m)^4\\.\\s+", "3. ");
+
+      return technicalPart;
+    }
+    return aiSynthesis;
   }
 
   /**
