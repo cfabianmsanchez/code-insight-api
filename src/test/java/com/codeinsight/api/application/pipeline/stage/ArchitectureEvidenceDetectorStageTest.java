@@ -4,7 +4,9 @@ import com.codeinsight.api.domain.model.ArchitectureEvidenceResult;
 import com.codeinsight.api.domain.model.ComponentAnalysisResult;
 import com.codeinsight.api.domain.model.ComponentType;
 import com.codeinsight.api.domain.model.DetectedComponent;
+import com.codeinsight.api.domain.model.ProjectKind;
 import com.codeinsight.api.domain.model.ScannedFileMap;
+import com.codeinsight.api.domain.model.TechnologyStack;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -39,7 +41,7 @@ class ArchitectureEvidenceDetectorStageTest {
                 ))
                 .build();
 
-        ArchitectureEvidenceResult result = stage.detect(scannedFiles, componentAnalysis);
+        ArchitectureEvidenceResult result = stage.detect(scannedFiles, componentAnalysis, null);
 
         assertNotNull(result);
         assertEquals(3, result.getTotalStructuralPaths());
@@ -83,7 +85,7 @@ class ArchitectureEvidenceDetectorStageTest {
                 .components(List.of())
                 .build();
 
-        ArchitectureEvidenceResult result = stage.detect(scannedFiles, componentAnalysis);
+        ArchitectureEvidenceResult result = stage.detect(scannedFiles, componentAnalysis, null);
 
         assertNotNull(result);
         assertNotNull(result.getEngineeringEvidence());
@@ -96,5 +98,30 @@ class ArchitectureEvidenceDetectorStageTest {
         assertTrue(eng.testScriptDetected());
         assertTrue(eng.testFilesDetected() > 0);
         assertTrue(eng.testDirectories().contains("tests"));
+    }
+
+    @Test
+    void detect_nestJsProjectShouldBeClassifiedAsBackend(@TempDir Path tempDir) {
+        List<String> files = List.of("src/app.module.ts", "src/app.controller.ts");
+
+        ScannedFileMap scannedFiles = ScannedFileMap.builder()
+                .rootPath(tempDir)
+                .relativeFilePaths(files)
+                .build();
+
+        ComponentAnalysisResult componentAnalysis = ComponentAnalysisResult.builder()
+                .totalComponents(0).components(List.of()).build();
+
+        // TechnologyStack ya detectó NestJS — aunque los archivos sean .ts debe clasificarse BACKEND
+        TechnologyStack nestStack = TechnologyStack.builder()
+                .mainLanguage("TypeScript")
+                .mainFramework("NestJS")
+                .buildTool("npm / Node.js")
+                .build();
+
+        ArchitectureEvidenceResult result = stage.detect(scannedFiles, componentAnalysis, nestStack);
+
+        assertNotNull(result);
+        assertEquals(ProjectKind.BACKEND, result.getProjectKind());
     }
 }

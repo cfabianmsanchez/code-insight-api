@@ -10,6 +10,7 @@ import com.codeinsight.api.domain.model.DetectedComponent;
 import com.codeinsight.api.domain.model.FrontendFramework;
 import com.codeinsight.api.domain.model.ProjectKind;
 import com.codeinsight.api.domain.model.ScannedFileMap;
+import com.codeinsight.api.domain.model.TechnologyStack;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -76,9 +77,14 @@ public class ArchitectureEvidenceDetectorStage {
      *
      * @param scannedFiles      Mapa de archivos escaneados (Etapa 2).
      * @param componentAnalysis Resultado del análisis de componentes (Etapa 4).
+     * @param technologyStack   Stack tecnológico ya detectado (Etapa 3). Se usa para
+     *                          resolver {@link ProjectKind} con prioridad sobre las
+     *                          heurísticas de extensión de archivo.
      * @return {@link ArchitectureEvidenceResult} con todas las evidencias recopiladas.
      */
-    public ArchitectureEvidenceResult detect(ScannedFileMap scannedFiles, ComponentAnalysisResult componentAnalysis) {
+    public ArchitectureEvidenceResult detect(ScannedFileMap scannedFiles,
+                                             ComponentAnalysisResult componentAnalysis,
+                                             TechnologyStack technologyStack) {
         if (scannedFiles == null) {
             throw new InvalidRepositoryException("ScannedFileMap must not be null");
         }
@@ -128,7 +134,7 @@ public class ArchitectureEvidenceDetectorStage {
         EngineeringEvidence engineeringEvidence = detectEngineeringEvidence(scannedFiles);
 
         // 5. Detectar ProjectKind y FrontendFramework
-        ProjectKind projectKind = determineProjectKind(scannedFiles, engineeringEvidence);
+        ProjectKind projectKind = determineProjectKind(scannedFiles, engineeringEvidence, technologyStack);
         FrontendFramework frontendFramework = determineFrontendFramework(scannedFiles);
 
         // 6. Detectar Evidencias de Arquitectura Frontend
@@ -446,14 +452,35 @@ public class ArchitectureEvidenceDetectorStage {
     // ── Clasificación de Proyecto y Framework Frontend ─────────────────────────
 
     /**
-     * Clasifica el proyecto como BACKEND, FRONTEND, FULLSTACK, MOBILE o UNKNOWN
-     * iterando sobre los indicadores definidos en {@link ArchitectureDetectionRules}.
+     * Clasifica el proyecto como BACKEND, FRONTEND, FULLSTACK, MOBILE o UNKNOWN.
+     * <p>
+     * Estrategia de resolución (por prioridad):
+     * <ol>
+     *   <li>Si el {@code technologyStack} ya identificó un framework conocido, se usa ese
+     *       dato directamente — evita que proyectos NestJS/Express se clasifiquen como
+     *       FRONTEND por tener archivos {@code .ts} / {@code .js}.</li>
+     *   <li>Si no hay framework, se recurre a las heurísticas de extensión de archivo
+     *       definidas en {@link ArchitectureDetectionRules}.</li>
+     * </ol>
      */
-    private ProjectKind determineProjectKind(ScannedFileMap scannedFiles, EngineeringEvidence engEvidence) {
+    private ProjectKind determineProjectKind(ScannedFileMap scannedFiles,
+                                             EngineeringEvidence engEvidence,
+                                             TechnologyStack technologyStack) {
         if (scannedFiles == null || scannedFiles.getAllFilePaths() == null) {
             return ProjectKind.UNKNOWN;
         }
 
+        // Prioridad 1: framework ya detectado por TechnologyDetectorStage
+        if (technologyStack != null) {
+            String framework = technologyStack.getMainFramework();
+            if (framework != null) {
+                if (ArchitectureDetectionRules.MOBILE_FRAMEWORKS.contains(framework))   return ProjectKind.MOBILE;
+                if (ArchitectureDetectionRules.BACKEND_FRAMEWORKS.contains(framework))  return ProjectKind.BACKEND;
+                if (ArchitectureDetectionRules.FRONTEND_FRAMEWORKS.contains(framework)) return ProjectKind.FRONTEND;
+            }
+        }
+
+        // Prioridad 2: heurísticas de extensión y nombre de archivo
         boolean hasBackend = false;
         boolean hasFrontendFiles = false;
         boolean hasPackageJson = engEvidence != null
@@ -472,9 +499,9 @@ public class ArchitectureEvidenceDetectorStage {
             if (!hasBackend) {
                 boolean isBackendExt  = ArchitectureDetectionRules.BACKEND_FILE_EXTENSIONS.stream().anyMatch(fileName::endsWith);
                 boolean isBackendFile = ArchitectureDetectionRules.BACKEND_FILE_NAMES.contains(fileName);
-                boolean isPythonBackend = fileName.endsWith(ArchitectureDetectionRules.PYTHON_EXTENSION)
-                        && (ArchitectureDetectionRules.PYTHON_BACKEND_KEYWORDS.stream().anyMatch(pathLower::contains)
-                        || fileName.equals(ArchitectureDetectionRules.PYTHON_REQUIREMENTS_FILE));
+                boolean isPythonBackend = (fileName.endsWith(ArchitectureDetectionRules.PYTHON_EXTENSION)
+                        && ArchitectureDetectionRules.PYTHON_BACKEND_KEYWORDS.stream().anyMatch(pathLower::contains))
+                        || fileName.equals(ArchitectureDetectionRules.PYTHON_REQUIREMENTS_FILE);
                 if (isBackendExt || isBackendFile || isPythonBackend) hasBackend = true;
             }
 

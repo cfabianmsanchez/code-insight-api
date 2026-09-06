@@ -40,7 +40,7 @@ com.codeinsight.api
 │   │   ├── ComponentDetectorStage.java         # Etapa 4: Identificación de componentes
 │   │   ├── ArchitectureEvidenceDetectorStage.java # Etapa 5: Evidencias Frontend/Backend y Puertos
 │   │   ├── ContextBuilderStage.java            # Etapa 6: Ensamblado de contexto factual
-│   │   └── OllamaAnalysisStage.java            # Etapa 7: Síntesis de arquitectura con IA
+│   │   └── AiSynthesisStage.java               # Etapa 7: Síntesis de arquitectura con IA
 │   ├── port
 │   │   ├── in
 │   │   │   └── AnalyzeRepositoryUseCase.java   # Input Port
@@ -58,9 +58,9 @@ com.codeinsight.api
     │   │   ├── SystemConfigController.java     # Endpoint para selección dinámica de modelos Ollama
     │   │   ├── dto/                            # Response DTOs
     │   │   ├── mapper/                         # Mapeador dominio ↔ DTO REST
-    │   │   └── exception/                      # GlobalExceptionHandler (RFC 7807)
+    │   │   └── exception/                      # GlobalExceptionHandler
     │   └── out
-    │       ├── ai                              # Driven Adapter para Ollama (RestClient & ZipFile)
+    │       ├── ai                              # Driven Adapter para Ollama (RestClient)
     │       │   ├── dto/                        # DTOs de comunicación HTTP
     │       │   └── OllamaAdapter.java          # Cliente REST hacia Ollama API
     │       ├── fetcher                         # Driven Adapters (Git & ZipFile Extractors)
@@ -95,7 +95,7 @@ El servicio `AnalyzeRepositoryService` ejecuta secuencialmente un pipeline deter
    - Identifica relaciones semánticas **Inbound** (Input Port → Implementación de Aplicación) y **Outbound** (Adaptador de Infraestructura → Output Port).
    - Detecta evidencias de ingeniería multiplataforma (archivos de test Java/JS/TS/Python, scripts de test en `package.json`, inyección de dependencias Spring).
 6. **`ContextBuilderStage`**: Ensambla el contexto factual combinando las evidencias determinísticas recopiladas con las plantillas versionadas de prompts cargadas a través de `PromptProvider`.
-7. **`OllamaAnalysisStage`**: Invoca el puerto `ArchitectureSynthesisPort` para comunicarse vía HTTP REST con el modelo Ollama local, sintetizar la evaluación arquitectónica en Markdown y extraer automáticamente la sección `0. Resumen Funcional` (`functionalSummary`). Incluye un modo de respaldo (fallback) resiliente.
+7. **`AiSynthesisStage`**: Invoca el puerto `ArchitectureSynthesisPort` para comunicarse vía HTTP REST con el modelo Ollama local, sintetizar la evaluación arquitectónica en Markdown y extraer automáticamente la sección `0. Resumen Funcional` (`functionalSummary`). Incluye un modo de respaldo (fallback) resiliente.
 
 ---
 

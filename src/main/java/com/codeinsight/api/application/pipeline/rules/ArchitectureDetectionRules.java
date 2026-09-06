@@ -179,6 +179,34 @@ public final class ArchitectureDetectionRules {
             "ionic", "capacitor", "cordova"
     );
 
+    /**
+     * Nombres de framework que el {@link com.codeinsight.api.domain.model.TechnologyStack} ya detectó
+     * y que implican inequívocamente un proyecto backend.
+     * <p>
+     * Estos valores se usan para que {@code determineProjectKind} priorice el stack detectado
+     * sobre las heurísticas de extensión de archivo, evitando que proyectos NestJS/Express
+     * se clasifiquen como FRONTEND por tener archivos {@code .ts} / {@code .js}.
+     */
+    public static final Set<String> BACKEND_FRAMEWORKS = Set.of(
+            "Spring Boot", "NestJS", "Express.js",
+            "FastAPI", "Django", "Flask"
+    );
+
+    /**
+     * Nombres de framework que implican inequívocamente un proyecto frontend.
+     * Se usan de forma simétrica a {@link #BACKEND_FRAMEWORKS}.
+     */
+    public static final Set<String> FRONTEND_FRAMEWORKS = Set.of(
+            "Angular", "React", "Vue", "Next.js", "Svelte"
+    );
+
+    /**
+     * Nombres de framework que implican un proyecto móvil.
+     */
+    public static final Set<String> MOBILE_FRAMEWORKS = Set.of(
+            "Ionic"
+    );
+
     // ─────────────────────────────────────────────────────────────────────────
     // Detección de framework frontend (FrontendFramework)
     // ─────────────────────────────────────────────────────────────────────────
@@ -220,7 +248,7 @@ public final class ArchitectureDetectionRules {
             new FrontendFrameworkRule(
                     FrontendFramework.VUE,
                     Set.of(),
-                    Set.of("vite.config"),
+                    Set.of(),                          // vite.config eliminado: Vite también lo usan React, Svelte, vanilla
                     Set.of(),
                     Set.of(".vue"),
                     Set.of("from 'vue'", "from \"vue\"")

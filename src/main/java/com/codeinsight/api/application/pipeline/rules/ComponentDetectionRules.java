@@ -49,8 +49,13 @@ public final class ComponentDetectionRules {
 
     /** Sufijos de nombre de archivo que identifican archivos de test. */
     public static final List<String> TEST_FILE_SUFFIXES = List.of(
-            ".test.", ".spec.",
-            "test.java", "test.ts", "test.js", "test.py", "_test.go"
+            ".test.ts", ".spec.ts",
+            ".test.tsx", ".spec.tsx",
+            ".test.js", ".spec.js",
+            ".test.jsx", ".spec.jsx",
+            ".test.mjs", ".spec.mjs",
+            "test.java", "tests.java", "spec.java",
+            "_test.go", "_test.py"
     );
 
     // -------------------------------------------------------------------------

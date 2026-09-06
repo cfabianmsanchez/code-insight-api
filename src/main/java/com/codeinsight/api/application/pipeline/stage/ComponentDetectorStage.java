@@ -98,7 +98,7 @@ public class ComponentDetectorStage {
             if (lower.contains(segment)) return false;
         }
         for (String suffix : ComponentDetectionRules.TEST_FILE_SUFFIXES) {
-            if (lower.contains(suffix) || lower.endsWith(suffix)) return false;
+            if (lower.endsWith(suffix.toLowerCase())) return false;
         }
 
         return ComponentDetectionRules.SOURCE_EXTENSIONS.stream().anyMatch(lower::endsWith);

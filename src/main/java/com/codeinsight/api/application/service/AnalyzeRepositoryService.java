@@ -76,7 +76,7 @@ public class AnalyzeRepositoryService implements AnalyzeRepositoryUseCase {
             ComponentAnalysisResult componentAnalysis = componentDetector.detect(scannedFiles);
 
             // Etapa 5: Architecture Evidence Detector (Recopilación factual de paquetes y evidencias)
-            ArchitectureEvidenceResult architectureEvidence = architectureEvidenceDetector.detect(scannedFiles, componentAnalysis);
+            ArchitectureEvidenceResult architectureEvidence = architectureEvidenceDetector.detect(scannedFiles, componentAnalysis, technologyStack);
 
             // Etapa 6: Context Builder (Ensamblado del prompt estructurado y contexto de análisis)
             AnalysisContext analysisContext = contextBuilder.buildContext(request, scannedFiles, technologyStack, componentAnalysis, architectureEvidence);
