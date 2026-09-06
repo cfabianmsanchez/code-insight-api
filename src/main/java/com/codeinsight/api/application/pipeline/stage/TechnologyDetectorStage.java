@@ -1,5 +1,10 @@
 package com.codeinsight.api.application.pipeline.stage;
 
+import com.codeinsight.api.application.pipeline.rules.TechnologyDetectionRules;
+import com.codeinsight.api.application.pipeline.rules.TechnologyDetectionRules.DatabaseRule;
+import com.codeinsight.api.application.pipeline.rules.TechnologyDetectionRules.FrameworkRule;
+import com.codeinsight.api.application.pipeline.rules.TechnologyDetectionRules.LibraryRule;
+import com.codeinsight.api.application.pipeline.rules.TechnologyDetectionRules.ManifestRules;
 import com.codeinsight.api.domain.exception.InvalidRepositoryException;
 import com.codeinsight.api.domain.model.ScannedFileMap;
 import com.codeinsight.api.domain.model.TechnologyStack;
@@ -12,16 +17,21 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 /**
- * Etapa 3 del Pipeline: Technology Detector.
+ * Analiza de forma determinista los archivos de manifiesto (pom.xml,
+ * package.json, etc.) y el conteo de extensiones para identificar el lenguaje
+ * principal,
+ * framework, herramienta de build, bases de datos y librerías clave del
+ * proyecto.
  * 
- * Analiza de forma determinista los archivos de manifiesto (pom.xml, package.json, etc.)
- * y el conteo de extensiones para identificar el lenguaje principal, framework, herramienta de build,
- * bases de datos y librerías clave del proyecto.
+ * Esta clase es genérica: no contiene ninguna regla ni keyword hardcoded.
+ * Todas las reglas de detección viven en {@link TechnologyDetectionRules}.
+ * Para agregar soporte a un nuevo framework, base de datos o tipo de
+ * manifiesto,
+ * edita esa clase.
  */
 @Component
 public class TechnologyDetectorStage {
@@ -29,144 +39,121 @@ public class TechnologyDetectorStage {
     private static final Logger log = LoggerFactory.getLogger(TechnologyDetectorStage.class);
 
     /**
-     * Examina las extensiones de archivos y los archivos de manifiesto del proyecto para construir el stack tecnológico.
+     * Examina las extensiones de archivos y los archivos de manifiesto del proyecto
+     * para construir el stack tecnológico.
      *
      * @param scannedMap Resultado del escaneo de archivos de la Etapa 2.
-     * @return {@link TechnologyStack} con el lenguaje, framework, motor de build y librerías detectadas.
+     * @return {@link TechnologyStack} con el lenguaje, framework, motor de build y
+     *         librerías detectadas.
      */
     public TechnologyStack detect(ScannedFileMap scannedMap) {
         if (scannedMap == null) {
             throw new InvalidRepositoryException("ScannedFileMap cannot be null");
         }
 
-        String mainLanguage = determineMainLanguage(scannedMap.getExtensionCounts());
-        String mainFramework = "Desconocido / Genérico";
-        String buildTool = "Desconocido";
-        Set<String> databases = new HashSet<>();
-        Set<String> libraries = new HashSet<>();
+        DetectionState state = new DetectionState(determineMainLanguage(scannedMap.getExtensionCounts()));
 
         if (scannedMap.getManifestFiles() != null) {
             for (Path manifest : scannedMap.getManifestFiles()) {
-                String fileName = manifest.getFileName().toString().toLowerCase();
-                String content = readContent(manifest);
-
-                if (fileName.equals("pom.xml")) {
-                    buildTool = "Maven";
-                    if (content.contains("spring-boot")) {
-                        mainFramework = "Spring Boot";
-                        mainLanguage = "Java";
-                    }
-                    if (content.contains("postgresql") || content.contains("org.postgresql"))
-                        databases.add("PostgreSQL");
-                    if (content.contains("h2database") || content.contains("com.h2database"))
-                        databases.add("H2");
-                    if (content.contains("mysql-connector") || content.contains("mysql"))
-                        databases.add("MySQL");
-                    if (content.contains("mongodb") || content.contains("spring-boot-starter-data-mongodb"))
-                        databases.add("MongoDB");
-                    if (content.contains("spring-boot-starter-data-jpa") || content.contains("spring-data-jpa"))
-                        libraries.add("Spring Data JPA");
-                    if (content.contains("<artifactid>lombok</artifactid>"))
-                        libraries.add("Lombok");
-                    if (content.contains("springdoc") || content.contains("swagger"))
-                        libraries.add("OpenAPI / Swagger");
-                } else if (fileName.startsWith("build.gradle")) {
-                    buildTool = "Gradle";
-                    if (content.contains("spring-boot")) {
-                        mainFramework = "Spring Boot";
-                        mainLanguage = "Java";
-                    }
-                    if (content.contains("postgresql"))
-                        databases.add("PostgreSQL");
-                    if (content.contains("h2database") || content.contains("com.h2database"))
-                        databases.add("H2");
-                    if (content.contains("mysql"))
-                        databases.add("MySQL");
-                } else if (fileName.equals("package.json")) {
-                    buildTool = "npm / Node.js";
-                    if (content.contains("@angular/core")) {
-                        mainFramework = "Angular";
-                        mainLanguage = "TypeScript";
-                    } else if (content.contains("@nestjs/core")) {
-                        mainFramework = "NestJS";
-                        mainLanguage = "TypeScript";
-                    } else if (content.contains("react")) {
-                        mainFramework = "React";
-                        mainLanguage = content.contains("typescript") ? "TypeScript" : "JavaScript";
-                    } else if (content.contains("express")) {
-                        mainFramework = "Express.js";
-                    }
-                    if (content.contains("pg") || content.contains("postgres"))
-                        databases.add("PostgreSQL");
-                    if (content.contains("mysql"))
-                        databases.add("MySQL");
-                    if (content.contains("mongoose") || content.contains("mongodb"))
-                        databases.add("MongoDB");
-                } else if (fileName.equals("requirements.txt") || fileName.equals("pyproject.toml")) {
-                    buildTool = "pip / Python";
-                    mainLanguage = "Python";
-                    if (content.contains("fastapi"))
-                        mainFramework = "FastAPI";
-                    else if (content.contains("django"))
-                        mainFramework = "Django";
-                    else if (content.contains("flask"))
-                        mainFramework = "Flask";
-
-                    if (content.contains("psycopg2"))
-                        databases.add("PostgreSQL");
-                    if (content.contains("sqlalchemy"))
-                        libraries.add("SQLAlchemy");
-                } else if (fileName.equals("dockerfile")) {
-                    libraries.add("Docker Containerization");
-                }
+                processManifest(manifest, state);
             }
         }
 
-        return TechnologyStack.builder()
-                .mainLanguage(mainLanguage)
-                .mainFramework(mainFramework)
-                .buildTool(buildTool)
-                .databasesDetected(new ArrayList<>(databases))
-                .keyLibraries(new ArrayList<>(libraries))
-                .build();
+        return state.buildStack();
     }
 
     /**
-     * Determina el lenguaje principal del proyecto según la frecuencia dominante de extensiones de archivo.
+     * Delega el procesamiento del manifiesto a las reglas definidas en
+     * {@link TechnologyDetectionRules#MANIFEST_RULES_BY_FILE}.
+     *
+     * Los archivos {@code build.gradle} se normalizan a la clave
+     * {@code "build.gradle"}
+     * para cubrir variantes como {@code build.gradle.kts}.
+     */
+    private void processManifest(Path manifest, DetectionState state) {
+        String fileName = manifest.getFileName().toString().toLowerCase();
+
+        // Normalizar variantes de build.gradle (ej. build.gradle.kts)
+        String lookupKey = fileName.startsWith("build.gradle") ? "build.gradle" : fileName;
+
+        ManifestRules rules = TechnologyDetectionRules.MANIFEST_RULES_BY_FILE.get(lookupKey);
+        if (rules == null) {
+            return;
+        }
+
+        String content = readContent(manifest);
+        applyManifestRules(rules, content, state);
+    }
+
+    /**
+     * Aplica el conjunto de reglas de un manifiesto al estado de detección:
+     * herramienta de build, framework principal, bases de datos y librerías.
+     */
+    private void applyManifestRules(ManifestRules rules, String content, DetectionState state) {
+        if (rules.buildTool() != null) {
+            state.buildTool = rules.buildTool();
+        }
+
+        // Framework principal: se aplica la primera regla que coincide
+        for (FrameworkRule rule : rules.frameworkRules()) {
+            if (anyKeywordPresent(content, rule.keywords())) {
+                state.mainFramework = rule.frameworkName();
+                if (rule.language() != null) {
+                    state.mainLanguage = rule.language();
+                } else if (rule.frameworkName().equals("React")) {
+                    // React puede ser TS o JS según el contenido del manifiesto
+                    state.mainLanguage = content.contains("typescript") ? "TypeScript" : "JavaScript";
+                }
+                break;
+            }
+        }
+
+        for (DatabaseRule rule : rules.databaseRules()) {
+            if (anyKeywordPresent(content, rule.keywords())) {
+                state.databases.add(rule.databaseName());
+            }
+        }
+
+        for (LibraryRule rule : rules.libraryRules()) {
+            if (anyKeywordPresent(content, rule.keywords())) {
+                state.libraries.add(rule.libraryName());
+            }
+        }
+    }
+
+    private boolean anyKeywordPresent(String content, java.util.List<String> keywords) {
+        return keywords.stream().anyMatch(content::contains);
+    }
+
+    /**
+     * Determina el lenguaje principal del proyecto según la frecuencia dominante de
+     * extensiones de archivo, usando
+     * {@link TechnologyDetectionRules#LANGUAGE_RULES}.
      */
     private String determineMainLanguage(Map<String, Integer> extCounts) {
         if (extCounts == null || extCounts.isEmpty()) {
-            return "Java / Multi-lenguaje";
+            return TechnologyDetectionRules.DEFAULT_LANGUAGE;
         }
 
-        int javaCount = extCounts.getOrDefault(".java", 0);
-        int tsCount = extCounts.getOrDefault(".ts", 0);
-        int pyCount = extCounts.getOrDefault(".py", 0);
-        int jsCount = extCounts.getOrDefault(".js", 0);
-        int goCount = extCounts.getOrDefault(".go", 0);
-
-        if (javaCount >= tsCount && javaCount >= pyCount && javaCount >= jsCount && javaCount >= goCount
-                && javaCount > 0) {
-            return "Java";
-        }
-        if (tsCount >= pyCount && tsCount >= jsCount && tsCount >= goCount && tsCount > 0) {
-            return "TypeScript";
-        }
-        if (pyCount >= jsCount && pyCount >= goCount && pyCount > 0) {
-            return "Python";
-        }
-        if (jsCount >= goCount && jsCount > 0) {
-            return "JavaScript";
-        }
-        if (goCount > 0) {
-            return "Go";
+        for (TechnologyDetectionRules.LanguageRule rule : TechnologyDetectionRules.LANGUAGE_RULES) {
+            int count = extCounts.getOrDefault(rule.extension(), 0);
+            if (count > 0 && isHighestOrEqual(extCounts, count)) {
+                return rule.languageName();
+            }
         }
 
-        return "Java / Multi-lenguaje";
+        return TechnologyDetectionRules.DEFAULT_LANGUAGE;
+    }
+
+    private boolean isHighestOrEqual(Map<String, Integer> extCounts, int targetCount) {
+        return TechnologyDetectionRules.LANGUAGE_RULES.stream()
+                .mapToInt(rule -> extCounts.getOrDefault(rule.extension(), 0))
+                .allMatch(count -> targetCount >= count);
     }
 
     /**
-     * Lee el contenido completo de un archivo de manifiesto en minúsculas de forma segura.
+     * Lee el contenido completo de un archivo de manifiesto en minúsculas de forma
+     * segura.
      */
     private String readContent(Path path) {
         try {
@@ -174,6 +161,28 @@ public class TechnologyDetectorStage {
         } catch (IOException e) {
             log.warn("Could not read content from manifest file {}: {}", path, e.getMessage());
             return "";
+        }
+    }
+
+    private static class DetectionState {
+        String mainLanguage;
+        String mainFramework = "Desconocido / Genérico";
+        String buildTool = "Desconocido";
+        final Set<String> databases = new HashSet<>();
+        final Set<String> libraries = new HashSet<>();
+
+        DetectionState(String mainLanguage) {
+            this.mainLanguage = mainLanguage;
+        }
+
+        TechnologyStack buildStack() {
+            return TechnologyStack.builder()
+                    .mainLanguage(mainLanguage)
+                    .mainFramework(mainFramework)
+                    .buildTool(buildTool)
+                    .databasesDetected(new ArrayList<>(databases))
+                    .keyLibraries(new ArrayList<>(libraries))
+                    .build();
         }
     }
 }

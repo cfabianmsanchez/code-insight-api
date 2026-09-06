@@ -5,7 +5,7 @@ import com.codeinsight.api.application.pipeline.stage.ArchitectureEvidenceDetect
 import com.codeinsight.api.application.pipeline.stage.ComponentDetectorStage;
 import com.codeinsight.api.application.pipeline.stage.ContextBuilderStage;
 import com.codeinsight.api.application.pipeline.stage.FileScannerStage;
-import com.codeinsight.api.application.pipeline.stage.OllamaAnalysisStage;
+import com.codeinsight.api.application.pipeline.stage.AiSynthesisStage;
 import com.codeinsight.api.application.pipeline.stage.RepositoryLoaderStage;
 import com.codeinsight.api.application.pipeline.stage.TechnologyDetectorStage;
 import com.codeinsight.api.application.port.out.ArchitectureSynthesisPort;
@@ -72,10 +72,15 @@ class AnalyzeRepositoryServiceTest {
         com.codeinsight.api.application.ai.PromptProvider promptProvider = new com.codeinsight.api.infrastructure.adapter.out.prompt.ResourcePromptProvider(new org.springframework.core.io.DefaultResourceLoader(), "v1");
         ((com.codeinsight.api.infrastructure.adapter.out.prompt.ResourcePromptProvider) promptProvider).init();
         ContextBuilderStage contextStage = new ContextBuilderStage(promptProvider);
-        ArchitectureSynthesisPort mockSynthesisPort = (sys, user) -> "Mocked AI Architecture Synthesis Report";
-        OllamaAnalysisStage ollamaStage = new OllamaAnalysisStage(mockSynthesisPort);
+        ArchitectureSynthesisPort mockSynthesisPort = new ArchitectureSynthesisPort() {
+            @Override
+            public String synthesize(String sys, String user) { return "Mocked AI Architecture Synthesis Report"; }
+            @Override
+            public String getActiveModel() { return "mock-model"; }
+        };
+        AiSynthesisStage aiStage = new AiSynthesisStage(mockSynthesisPort);
 
-        AnalyzeRepositoryService service = new AnalyzeRepositoryService(loaderStage, scannerStage, techStage, componentStage, archStage, contextStage, ollamaStage);
+        AnalyzeRepositoryService service = new AnalyzeRepositoryService(loaderStage, scannerStage, techStage, componentStage, archStage, contextStage, aiStage);
 
         FetchCodeRequest request = FetchCodeRequest.builder()
                 .projectKey("pipeline-integration-test")

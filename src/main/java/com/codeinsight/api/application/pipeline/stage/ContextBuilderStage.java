@@ -12,11 +12,12 @@ import com.codeinsight.api.domain.model.TechnologyStack;
 import org.springframework.stereotype.Component;
 
 /**
- * Etapa 6 del Pipeline: Context Builder.
- *
- * Consolida todas las evidencias determinísticas recopiladas (Etapas 2 a 5) en un prompt
- * estructurado en formato Markdown optimizado para ser consumido por el motor de síntesis IA (Etapa 7).
- * Utiliza {@link PromptProvider} para cargar las plantillas de prompts versionadas fuera del código Java.
+ * Consolida todas las evidencias determinísticas recopiladas (Etapas 2 a 5) en
+ * un prompt
+ * estructurado en formato Markdown optimizado para ser consumido por el motor
+ * de síntesis IA.
+ * Utiliza {@link PromptProvider} para cargar las plantillas de prompts
+ * versionadas fuera del código Java.
  */
 @Component
 public class ContextBuilderStage {
@@ -28,14 +29,17 @@ public class ContextBuilderStage {
     }
 
     /**
-     * Construye los prompts del sistema y usuario reuniendo las métricas y evidencias factuales.
+     * Construye los prompts del sistema y usuario reuniendo las métricas y
+     * evidencias factuales.
      *
      * @param request              Solicitud original de análisis.
      * @param scannedFiles         Mapa de archivos escaneados.
      * @param techStack            Stack tecnológico detectado.
      * @param componentAnalysis    Análisis de componentes.
-     * @param architectureEvidence Evidencias estructurales y de ingeniería de la arquitectura.
-     * @return {@link AnalysisContext} con systemPrompt, userPrompt y formattedContextPrompt.
+     * @param architectureEvidence Evidencias estructurales y de ingeniería de la
+     *                             arquitectura.
+     * @return {@link AnalysisContext} con systemPrompt, userPrompt y
+     *         formattedContextPrompt.
      */
     public AnalysisContext buildContext(FetchCodeRequest request,
             ScannedFileMap scannedFiles,
@@ -49,13 +53,16 @@ public class ContextBuilderStage {
         userPromptBuilder.append("# Radiografía de Ingeniería Inversa del Repositorio\n\n");
 
         // 0. Metadata del Proyecto (extraída de manifiestos: package.json, etc.)
-        EngineeringEvidence engMeta = (architectureEvidence != null) ? architectureEvidence.getEngineeringEvidence() : null;
-        if (engMeta != null && (engMeta.projectName() != null || engMeta.projectDescription() != null || engMeta.mainEntry() != null)) {
+        EngineeringEvidence engMeta = (architectureEvidence != null) ? architectureEvidence.getEngineeringEvidence()
+                : null;
+        if (engMeta != null && (engMeta.projectName() != null || engMeta.projectDescription() != null
+                || engMeta.mainEntry() != null)) {
             userPromptBuilder.append("## 0. Metadata del Proyecto (extraída del manifiesto)\n");
             if (engMeta.projectName() != null)
                 userPromptBuilder.append("- **Nombre del Proyecto**: ").append(engMeta.projectName()).append("\n");
             if (engMeta.projectDescription() != null)
-                userPromptBuilder.append("- **Descripción Declarada**: ").append(engMeta.projectDescription()).append("\n");
+                userPromptBuilder.append("- **Descripción Declarada**: ").append(engMeta.projectDescription())
+                        .append("\n");
             if (engMeta.mainEntry() != null)
                 userPromptBuilder.append("- **Punto de Entrada Principal**: ").append(engMeta.mainEntry()).append("\n");
             if (engMeta.testScript() != null)
@@ -71,8 +78,10 @@ public class ContextBuilderStage {
         }
         if (scannedFiles != null) {
             userPromptBuilder.append("- **Total de Archivos**: ").append(scannedFiles.getTotalFiles()).append("\n");
-            userPromptBuilder.append("- **Total de Directorios**: ").append(scannedFiles.getTotalDirectories()).append("\n");
-            userPromptBuilder.append("- **Conteo por Extensión**: ").append(scannedFiles.getExtensionCounts()).append("\n");
+            userPromptBuilder.append("- **Total de Directorios**: ").append(scannedFiles.getTotalDirectories())
+                    .append("\n");
+            userPromptBuilder.append("- **Conteo por Extensión**: ").append(scannedFiles.getExtensionCounts())
+                    .append("\n");
         }
         userPromptBuilder.append("\n");
 
@@ -81,8 +90,10 @@ public class ContextBuilderStage {
         if (techStack != null) {
             userPromptBuilder.append("- **Lenguaje Principal**: ").append(techStack.getMainLanguage()).append("\n");
             userPromptBuilder.append("- **Framework Principal**: ").append(techStack.getMainFramework()).append("\n");
-            userPromptBuilder.append("- **Herramienta de Compilación**: ").append(techStack.getBuildTool()).append("\n");
-            userPromptBuilder.append("- **Bases de Datos Detectadas**: ").append(techStack.getDatabasesDetected()).append("\n");
+            userPromptBuilder.append("- **Herramienta de Compilación**: ").append(techStack.getBuildTool())
+                    .append("\n");
+            userPromptBuilder.append("- **Bases de Datos Detectadas**: ").append(techStack.getDatabasesDetected())
+                    .append("\n");
             userPromptBuilder.append("- **Librerías Clave**: ").append(techStack.getKeyLibraries()).append("\n");
         }
         userPromptBuilder.append("\n");
@@ -90,8 +101,10 @@ public class ContextBuilderStage {
         // 3. Catálogo de Componentes
         userPromptBuilder.append("## 3. Catálogo de Componentes Identificados\n");
         if (componentAnalysis != null) {
-            userPromptBuilder.append("- **Total de Componentes**: ").append(componentAnalysis.getTotalComponents()).append("\n");
-            userPromptBuilder.append("- **Distribución por Estereotipo**: ").append(componentAnalysis.getComponentCounts()).append("\n");
+            userPromptBuilder.append("- **Total de Componentes**: ").append(componentAnalysis.getTotalComponents())
+                    .append("\n");
+            userPromptBuilder.append("- **Distribución por Estereotipo**: ")
+                    .append(componentAnalysis.getComponentCounts()).append("\n");
             userPromptBuilder.append("- **Lista de Componentes y Rutas de Evidencia**:\n");
             if (componentAnalysis.getComponents() != null) {
                 for (DetectedComponent comp : componentAnalysis.getComponents()) {
@@ -124,19 +137,21 @@ public class ContextBuilderStage {
             // 4a. Relaciones inbound (implementaciones de puertos de entrada)
             if (!architectureEvidence.getInboundPortImplementations().isEmpty()) {
                 userPromptBuilder.append("\n### 4a. Relaciones Inbound (Puerto de Entrada → Implementación)\n");
-                userPromptBuilder.append("Las siguientes interfaces de entrada son implementadas por clases de la capa application:\n");
-                architectureEvidence.getInboundPortImplementations().forEach((port, impl) ->
-                        userPromptBuilder.append("  - `").append(impl).append("` implementa puerto inbound `").append(port).append("`\n")
-                );
+                userPromptBuilder.append(
+                        "Las siguientes interfaces de entrada son implementadas por clases de la capa application:\n");
+                architectureEvidence.getInboundPortImplementations()
+                        .forEach((port, impl) -> userPromptBuilder.append("  - `").append(impl)
+                                .append("` implementa puerto inbound `").append(port).append("`\n"));
             }
 
             // 4b. Relaciones outbound (adaptadores que implementan puertos de salida)
             if (!architectureEvidence.getOutboundAdapterImplementations().isEmpty()) {
                 userPromptBuilder.append("\n### 4b. Relaciones Outbound (Adaptador → Puerto de Salida)\n");
-                userPromptBuilder.append("Los siguientes adaptadores de infraestructura implementan puertos de salida:\n");
-                architectureEvidence.getOutboundAdapterImplementations().forEach((adapter, port) ->
-                        userPromptBuilder.append("  - `").append(adapter).append("` implementa puerto outbound `").append(port).append("`\n")
-                );
+                userPromptBuilder
+                        .append("Los siguientes adaptadores de infraestructura implementan puertos de salida:\n");
+                architectureEvidence.getOutboundAdapterImplementations()
+                        .forEach((adapter, port) -> userPromptBuilder.append("  - `").append(adapter)
+                                .append("` implementa puerto outbound `").append(port).append("`\n"));
             }
 
             // 4c. Evidencias de ingeniería (stack-aware)
@@ -159,7 +174,8 @@ public class ContextBuilderStage {
                 }
 
                 // Spring/Java específico — solo mostrar si hay evidencia relevante
-                if (eng.springConfigurationDetected() || eng.beanDefinitions() > 0 || eng.constructorInjectionDetected()) {
+                if (eng.springConfigurationDetected() || eng.beanDefinitions() > 0
+                        || eng.constructorInjectionDetected()) {
                     userPromptBuilder.append("- **Inyección de Dependencias Spring (@Configuration)**: ")
                             .append(eng.springConfigurationDetected() ? "DETECTADA" : "No observada").append("\n");
                     userPromptBuilder.append("- **Definiciones @Bean**: ").append(eng.beanDefinitions()).append("\n");
@@ -170,11 +186,15 @@ public class ContextBuilderStage {
 
             // 4d. Clasificación del Tipo de Proyecto y Evidencias Frontend
             userPromptBuilder.append("\n### 4d. Clasificación de Proyecto y Evidencias Frontend\n");
-            userPromptBuilder.append("- **Tipo de Proyecto Inferido (ProjectKind)**: ").append(architectureEvidence.getProjectKind()).append("\n");
-            if (architectureEvidence.getFrontendFramework() != null && architectureEvidence.getFrontendFramework() != com.codeinsight.api.domain.model.FrontendFramework.NONE) {
-                userPromptBuilder.append("- **Framework Frontend Detectado**: ").append(architectureEvidence.getFrontendFramework()).append("\n");
+            userPromptBuilder.append("- **Tipo de Proyecto Inferido (ProjectKind)**: ")
+                    .append(architectureEvidence.getProjectKind()).append("\n");
+            if (architectureEvidence.getFrontendFramework() != null && architectureEvidence
+                    .getFrontendFramework() != com.codeinsight.api.domain.model.FrontendFramework.NONE) {
+                userPromptBuilder.append("- **Framework Frontend Detectado**: ")
+                        .append(architectureEvidence.getFrontendFramework()).append("\n");
             }
-            if (architectureEvidence.getFrontendEvidenceNotes() != null && !architectureEvidence.getFrontendEvidenceNotes().isEmpty()) {
+            if (architectureEvidence.getFrontendEvidenceNotes() != null
+                    && !architectureEvidence.getFrontendEvidenceNotes().isEmpty()) {
                 userPromptBuilder.append("- **Evidencias Específicas de Arquitectura Frontend**:\n");
                 for (String note : architectureEvidence.getFrontendEvidenceNotes()) {
                     userPromptBuilder.append("  - ").append(note).append("\n");

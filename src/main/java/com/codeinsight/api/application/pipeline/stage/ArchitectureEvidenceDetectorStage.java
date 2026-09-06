@@ -1,5 +1,7 @@
 package com.codeinsight.api.application.pipeline.stage;
 
+import com.codeinsight.api.application.pipeline.rules.ArchitectureDetectionRules;
+import com.codeinsight.api.application.pipeline.rules.ArchitectureDetectionRules.FrontendFrameworkRule;
 import com.codeinsight.api.domain.exception.InvalidRepositoryException;
 import com.codeinsight.api.domain.model.ArchitectureEvidenceResult;
 import com.codeinsight.api.domain.model.ArchitectureEvidenceResult.EngineeringEvidence;
@@ -40,13 +42,16 @@ import java.util.regex.Pattern;
  *   <li>Evidencias de DI Spring (@Configuration, @Bean, constructor injection)</li>
  * </ul>
  * No emite conclusiones ni clasificaciones rígidas: solo reporta hechos verificables.
+ * <p>
+ * Esta clase es genérica: no contiene ningún dato de detección hardcodeado.
+ * Todas las reglas y constantes viven en {@link ArchitectureDetectionRules}.
  */
 @Component
 public class ArchitectureEvidenceDetectorStage {
 
     private static final Logger log = LoggerFactory.getLogger(ArchitectureEvidenceDetectorStage.class);
 
-    // ── Patrones de análisis estático Java ───────────────────────────────────
+    // ── Patrones de análisis estático Java (lógica, no datos escalables) ─────
 
     /** Captura las interfaces declaradas en {@code implements A, B<X>}. */
     private static final Pattern IMPLEMENTS_PATTERN =
@@ -61,54 +66,6 @@ public class ArchitectureEvidenceDetectorStage {
 
     /** Detecta clases anotadas con {@code @Configuration}. */
     private static final Pattern CONFIGURATION_PATTERN = Pattern.compile("@Configuration");
-
-    // ── Patrones de archivos de test multiplataforma ──────────────────────────
-
-    /**
-     * Extensiones y sufijos que identifican archivos de test en cualquier stack.
-     * Java: *Test.java, *Tests.java, *Spec.java
-     * Node: *.test.js/ts, *.spec.js/ts
-     * Python: test_*.py, *_test.py
-     */
-    private static final Set<String> TEST_FILE_SUFFIXES = Set.of(
-            "Test.java", "Tests.java", "Spec.java",
-            ".test.js", ".test.ts", ".spec.js", ".spec.ts",
-            ".test.mjs", ".spec.mjs"
-    );
-
-    /** Directorios que convencionalmente contienen tests en distintos stacks. */
-    private static final Set<String> TEST_DIRECTORY_NAMES = Set.of(
-            "test", "tests", "__tests__", "spec", "specs",
-            "src/test", "test/unit", "test/integration",
-            "e2e", "cypress", "jest"
-    );
-
-    // ── Palabras clave de arquitectura ────────────────────────────────────────
-
-    private static final Set<String> KNOWN_ARCHITECTURAL_KEYWORDS = Set.of(
-            "domain", "application", "infrastructure",
-            "port", "ports", "in", "out",
-            "adapter", "adapters",
-            "usecase", "usecases",
-            "controller", "controllers",
-            "service", "services",
-            "repository", "repositories",
-            "entity", "entities",
-            "model", "models",
-            "dto", "config", "configuration",
-            "feature", "features",
-            "component", "components",
-            "mapper", "mappers",
-            "exception", "exceptions",
-            "shared", "core", "web", "view", "views");
-
-    private static final Set<String> LAYER_KEYWORDS = Set.of(
-            "domain", "application", "infrastructure",
-            "feature", "features",
-            "core", "web",
-            "service", "services",
-            "repository", "repositories",
-            "controller", "controllers");
 
     // ── Método principal ──────────────────────────────────────────────────────
 
@@ -145,7 +102,7 @@ public class ArchitectureEvidenceDetectorStage {
                     if (depth > maxDepth) maxDepth = depth;
                     for (Path segment : parent) {
                         String nameLower = segment.toString().toLowerCase();
-                        if (KNOWN_ARCHITECTURAL_KEYWORDS.contains(nameLower)) {
+                        if (ArchitectureDetectionRules.KNOWN_ARCHITECTURAL_KEYWORDS.contains(nameLower)) {
                             detectedKeywords.add(nameLower);
                         }
                     }
@@ -172,10 +129,10 @@ public class ArchitectureEvidenceDetectorStage {
 
         // 5. Detectar ProjectKind y FrontendFramework
         ProjectKind projectKind = determineProjectKind(scannedFiles, engineeringEvidence);
-        FrontendFramework frontendFramework = determineFrontendFramework(scannedFiles, engineeringEvidence);
+        FrontendFramework frontendFramework = determineFrontendFramework(scannedFiles);
 
         // 6. Detectar Evidencias de Arquitectura Frontend
-        List<String> frontendEvidenceNotes = detectFrontendArchitectureEvidence(scannedFiles, projectKind, frontendFramework);
+        List<String> frontendEvidenceNotes = detectFrontendArchitectureEvidence(scannedFiles, projectKind);
 
         // 7. Generar notas de evidencia puramente factuales
         evidenceNotes.add("Clasificación de tipo de proyecto: " + projectKind + " (Framework Frontend: " + frontendFramework + ")");
@@ -235,7 +192,9 @@ public class ArchitectureEvidenceDetectorStage {
 
     /**
      * Lee el contenido de cada archivo {@code .java} y busca declaraciones {@code implements}.
-     * Clasifica la relación como <em>inbound</em> u <em>outbound</em> según la ruta del archivo.
+     * Clasifica la relación como <em>inbound</em> u <em>outbound</em> según la ruta del archivo,
+     * usando {@link ArchitectureDetectionRules#INBOUND_PATH_SEGMENTS} y
+     * {@link ArchitectureDetectionRules#OUTBOUND_PATH_SEGMENTS}.
      */
     private PortRelations detectPortRelations(ScannedFileMap scannedFiles) {
         Map<String, String> inbound = new LinkedHashMap<>();
@@ -268,14 +227,13 @@ public class ArchitectureEvidenceDetectorStage {
                 String ifaceName = iface.trim().replaceAll("<.*>", "").trim();
                 if (!looksLikeAPort(ifaceName)) continue;
 
-                if (pathStr.contains("port/in") || pathStr.contains("ports/in")) {
+                boolean isInbound = ArchitectureDetectionRules.INBOUND_PATH_SEGMENTS.stream()
+                        .anyMatch(pathStr::contains);
+                boolean isOutbound = ArchitectureDetectionRules.OUTBOUND_PATH_SEGMENTS.stream()
+                        .anyMatch(pathStr::contains);
+
+                if (isInbound && !isOutbound) {
                     inbound.put(ifaceName, className);
-                } else if (pathStr.contains("adapter") || pathStr.contains("port/out") || pathStr.contains("ports/out")) {
-                    outbound.put(className, ifaceName);
-                } else if (pathStr.contains("application")) {
-                    inbound.put(ifaceName, className);
-                } else if (pathStr.contains("infrastructure")) {
-                    outbound.put(className, ifaceName);
                 } else {
                     outbound.put(className, ifaceName);
                 }
@@ -285,16 +243,12 @@ public class ArchitectureEvidenceDetectorStage {
     }
 
     /**
-     * Determina si el nombre de una interfaz corresponde a un puerto hexagonal.
+     * Determina si el nombre de una interfaz corresponde a un puerto hexagonal,
+     * usando {@link ArchitectureDetectionRules#PORT_INTERFACE_SUFFIXES}.
      */
     private boolean looksLikeAPort(String interfaceName) {
-        return interfaceName.endsWith("Port")
-                || interfaceName.endsWith("UseCase")
-                || interfaceName.endsWith("Repository")
-                || interfaceName.endsWith("Gateway")
-                || interfaceName.endsWith("Facade")
-                || interfaceName.endsWith("Handler")
-                || interfaceName.endsWith("Client");
+        return ArchitectureDetectionRules.PORT_INTERFACE_SUFFIXES.stream()
+                .anyMatch(interfaceName::endsWith);
     }
 
     // ── Detección de evidencias de ingeniería (stack-agnostic) ────────────────
@@ -336,15 +290,13 @@ public class ArchitectureEvidenceDetectorStage {
             boolean isTestFile = isTestFile(fileName, pathLower);
             if (isTestFile) {
                 testFileCount++;
-                // Registrar el directorio de test
                 Path parent = filePath.getParent();
                 if (parent != null) {
                     String parentName = parent.getFileName().toString().toLowerCase();
-                    if (TEST_DIRECTORY_NAMES.contains(parentName)) {
+                    if (ArchitectureDetectionRules.TEST_DIRECTORY_NAMES.contains(parentName)) {
                         foundTestDirs.add(parentName);
                     } else {
-                        // Buscar en la ruta completa un segmento que sea directorio de test
-                        for (String testDir : TEST_DIRECTORY_NAMES) {
+                        for (String testDir : ArchitectureDetectionRules.TEST_DIRECTORY_NAMES) {
                             if (pathLower.contains("/" + testDir + "/") || pathLower.endsWith("/" + testDir)) {
                                 foundTestDirs.add(testDir);
                                 break;
@@ -391,13 +343,9 @@ public class ArchitectureEvidenceDetectorStage {
             Matcher beanMatcher = BEAN_PATTERN.matcher(content);
             while (beanMatcher.find()) beanCount++;
 
-            // Solo evaluar inyección por constructor si la clase tiene estereotipos de componente Spring
-            boolean isSpringManagedClass = content.contains("@Component")
-                    || content.contains("@Service")
-                    || content.contains("@Repository")
-                    || content.contains("@RestController")
-                    || content.contains("@Controller")
-                    || content.contains("@Configuration");
+            // Solo evaluar inyección por constructor en clases gestionadas por Spring
+            boolean isSpringManagedClass = ArchitectureDetectionRules.SPRING_MANAGED_ANNOTATIONS.stream()
+                    .anyMatch(content::contains);
 
             if (isSpringManagedClass && !constructorInjection && CONSTRUCTOR_INJECTION_PATTERN.matcher(content).find()) {
                 if (content.matches("(?s).*public\\s+\\w+\\s*\\([^)]+\\)\\s*\\{.*")) {
@@ -422,23 +370,25 @@ public class ArchitectureEvidenceDetectorStage {
 
     /**
      * Determina si un archivo es un archivo de test según su nombre y ruta.
-     * Cubre patrones de Java, Node.js (JS/TS/MJS) y Python.
+     * Cubre patrones de Java, Node.js (JS/TS/MJS) y Python,
+     * usando {@link ArchitectureDetectionRules}.
      */
     private boolean isTestFile(String fileName, String pathLower) {
-        // Sufijos Node/TS
-        for (String suffix : TEST_FILE_SUFFIXES) {
+        // Sufijos genéricos (Java y Node)
+        for (String suffix : ArchitectureDetectionRules.TEST_FILE_SUFFIXES) {
             if (fileName.endsWith(suffix)) return true;
         }
-        // Java: *Test.java, *Tests.java
-        if (fileName.endsWith("Test.java") || fileName.endsWith("Tests.java") || fileName.endsWith("Spec.java")) {
-            return true;
-        }
-        // Python: test_*.py, *_test.py
-        if (fileName.endsWith(".py") && (fileName.startsWith("test_") || fileName.endsWith("_test.py"))) {
-            return true;
+        // Python: prefijo test_ o sufijo _test.py
+        if (fileName.endsWith(ArchitectureDetectionRules.PYTHON_EXTENSION)) {
+            for (String prefix : ArchitectureDetectionRules.TEST_FILE_PREFIXES_PYTHON) {
+                if (fileName.startsWith(prefix)) return true;
+            }
+            for (String suffix : ArchitectureDetectionRules.TEST_FILE_SUFFIXES_PYTHON) {
+                if (fileName.endsWith(suffix)) return true;
+            }
         }
         // Cualquier archivo dentro de una carpeta de test conocida
-        for (String testDir : TEST_DIRECTORY_NAMES) {
+        for (String testDir : ArchitectureDetectionRules.TEST_DIRECTORY_NAMES) {
             if (pathLower.contains("/" + testDir + "/")) return true;
         }
         return false;
@@ -462,7 +412,6 @@ public class ArchitectureEvidenceDetectorStage {
      * Extrae el valor del campo {@code test} dentro de {@code scripts} en un package.json.
      */
     private String extractJsonScriptField(String json, String scriptName) {
-        // Busca dentro del bloque "scripts": { ... }
         Pattern scriptsBlock = Pattern.compile("\"scripts\"\\s*:\\s*\\{([^}]+)\\}");
         Matcher blockMatcher = scriptsBlock.matcher(json);
         if (!blockMatcher.find()) return null;
@@ -480,7 +429,8 @@ public class ArchitectureEvidenceDetectorStage {
     // ── Utilidades ────────────────────────────────────────────────────────────
 
     /**
-     * Extrae el nombre de la capa o paquete representativo de la ruta de un componente.
+     * Extrae el nombre de la capa o paquete representativo de la ruta de un componente,
+     * usando {@link ArchitectureDetectionRules#LAYER_KEYWORDS}.
      */
     private String extractTopLayerPackage(String relativePath) {
         Path path = Path.of(relativePath);
@@ -488,120 +438,122 @@ public class ArchitectureEvidenceDetectorStage {
         if (parent == null) return "root";
         for (Path segment : parent) {
             String nameLower = segment.toString().toLowerCase();
-            if (LAYER_KEYWORDS.contains(nameLower)) return nameLower;
+            if (ArchitectureDetectionRules.LAYER_KEYWORDS.contains(nameLower)) return nameLower;
         }
         return parent.getFileName() != null ? parent.getFileName().toString() : "root";
     }
 
     // ── Clasificación de Proyecto y Framework Frontend ─────────────────────────
 
+    /**
+     * Clasifica el proyecto como BACKEND, FRONTEND, FULLSTACK, MOBILE o UNKNOWN
+     * iterando sobre los indicadores definidos en {@link ArchitectureDetectionRules}.
+     */
     private ProjectKind determineProjectKind(ScannedFileMap scannedFiles, EngineeringEvidence engEvidence) {
         if (scannedFiles == null || scannedFiles.getAllFilePaths() == null) {
             return ProjectKind.UNKNOWN;
         }
 
-        boolean hasJava = false;
-        boolean hasPythonBackend = false;
-        boolean hasGo = false;
-        boolean hasDotNet = false;
+        boolean hasBackend = false;
         boolean hasFrontendFiles = false;
-        boolean hasPackageJson = engEvidence != null && (engEvidence.projectName() != null || engEvidence.testScriptDetected());
+        boolean hasPackageJson = engEvidence != null
+                && (engEvidence.projectName() != null || engEvidence.testScriptDetected());
 
         for (Path filePath : scannedFiles.getAllFilePaths()) {
             String fileName = filePath.getFileName().toString().toLowerCase();
             String pathLower = filePath.toString().replace("\\", "/").toLowerCase();
 
-            if (fileName.endsWith(".java") || fileName.equals("pom.xml") || fileName.equals("build.gradle")) {
-                hasJava = true;
+            // Señales de mobile (prioridad máxima — retorno inmediato)
+            for (String mobileKw : ArchitectureDetectionRules.MOBILE_FILE_KEYWORDS) {
+                if (fileName.contains(mobileKw)) return ProjectKind.MOBILE;
             }
-            if (fileName.endsWith(".go") || fileName.equals("go.mod")) {
-                hasGo = true;
+
+            // Señales de backend
+            if (!hasBackend) {
+                boolean isBackendExt  = ArchitectureDetectionRules.BACKEND_FILE_EXTENSIONS.stream().anyMatch(fileName::endsWith);
+                boolean isBackendFile = ArchitectureDetectionRules.BACKEND_FILE_NAMES.contains(fileName);
+                boolean isPythonBackend = fileName.endsWith(ArchitectureDetectionRules.PYTHON_EXTENSION)
+                        && (ArchitectureDetectionRules.PYTHON_BACKEND_KEYWORDS.stream().anyMatch(pathLower::contains)
+                        || fileName.equals(ArchitectureDetectionRules.PYTHON_REQUIREMENTS_FILE));
+                if (isBackendExt || isBackendFile || isPythonBackend) hasBackend = true;
             }
-            if (fileName.endsWith(".cs") || fileName.endsWith(".csproj")) {
-                hasDotNet = true;
-            }
-            if (fileName.endsWith(".py") && (pathLower.contains("django") || pathLower.contains("fastapi") || pathLower.contains("flask") || fileName.equals("requirements.txt"))) {
-                hasPythonBackend = true;
-            }
-            if (fileName.endsWith(".ts") || fileName.endsWith(".js") || fileName.endsWith(".html") || fileName.endsWith(".scss")
-                    || fileName.endsWith(".vue") || fileName.endsWith(".jsx") || fileName.endsWith(".tsx")) {
-                if (!pathLower.contains("node_modules")) {
+
+            // Señales de frontend
+            if (!hasFrontendFiles && !pathLower.contains("node_modules")) {
+                if (ArchitectureDetectionRules.FRONTEND_FILE_EXTENSIONS.stream().anyMatch(fileName::endsWith)) {
                     hasFrontendFiles = true;
                 }
             }
-            if (fileName.contains("ionic") || fileName.contains("capacitor") || fileName.contains("cordova")) {
-                return ProjectKind.MOBILE;
-            }
         }
 
-        boolean hasBackend = hasJava || hasGo || hasDotNet || hasPythonBackend;
-
-        if (hasBackend && hasFrontendFiles) {
-            return ProjectKind.FULLSTACK;
-        } else if (hasBackend) {
-            return ProjectKind.BACKEND;
-        } else if (hasFrontendFiles || hasPackageJson) {
-            return ProjectKind.FRONTEND;
-        }
-
+        if (hasBackend && hasFrontendFiles) return ProjectKind.FULLSTACK;
+        if (hasBackend)                     return ProjectKind.BACKEND;
+        if (hasFrontendFiles || hasPackageJson) return ProjectKind.FRONTEND;
         return ProjectKind.UNKNOWN;
     }
 
-    private FrontendFramework determineFrontendFramework(ScannedFileMap scannedFiles, EngineeringEvidence engEvidence) {
+    /**
+     * Identifica el framework frontend activo iterando en orden de prioridad sobre
+     * {@link ArchitectureDetectionRules#FRONTEND_FRAMEWORK_RULES}.
+     * La primera regla que coincide en cualquier archivo del proyecto gana.
+     */
+    private FrontendFramework determineFrontendFramework(ScannedFileMap scannedFiles) {
         if (scannedFiles == null || scannedFiles.getAllFilePaths() == null) {
             return FrontendFramework.NONE;
         }
 
-        boolean hasAngularJson = false;
-        boolean hasIonic = false;
-        boolean hasNext = false;
-        boolean hasVue = false;
-        boolean hasReact = false;
-        boolean hasSvelte = false;
+        // Estado de señales detectadas por framework (en el mismo orden que las reglas)
+        List<FrontendFrameworkRule> rules = ArchitectureDetectionRules.FRONTEND_FRAMEWORK_RULES;
+        boolean[] detected = new boolean[rules.size()];
 
         for (Path filePath : scannedFiles.getAllFilePaths()) {
             String fileName = filePath.getFileName().toString().toLowerCase();
             String pathLower = filePath.toString().replace("\\", "/").toLowerCase();
 
-            if (fileName.equals("angular.json")) hasAngularJson = true;
-            if (fileName.contains("capacitor.config") || fileName.contains("ionic.config")) hasIonic = true;
-            if (fileName.contains("next.config") || pathLower.contains("/next/")) hasNext = true;
-            if (fileName.endsWith(".vue") || fileName.contains("vite.config")) {
-                if (fileName.endsWith(".vue")) hasVue = true;
-            }
-            if (fileName.endsWith(".jsx") || fileName.endsWith(".tsx")) hasReact = true;
-            if (fileName.endsWith(".svelte") || fileName.contains("svelte.config")) hasSvelte = true;
+            for (int i = 0; i < rules.size(); i++) {
+                if (detected[i]) continue;
+                FrontendFrameworkRule rule = rules.get(i);
 
-            if (fileName.endsWith(".ts") || fileName.endsWith(".js")) {
-                try {
-                    String content = Files.readString(filePath);
-                    if (content.contains("@angular/core") || content.contains("@Component")) hasAngularJson = true;
-                    if (content.contains("@ionic/")) hasIonic = true;
-                    if (content.contains("from 'react'") || content.contains("from \"react\"")) hasReact = true;
-                    if (content.contains("from 'vue'") || content.contains("from \"vue\"")) hasVue = true;
-                    if (content.contains("from 'next'") || content.contains("from \"next\"")) hasNext = true;
-                } catch (IOException ignored) {}
+                boolean matches =
+                        rule.fileNameEquals().stream().anyMatch(fileName::equals)
+                        || rule.fileNameContains().stream().anyMatch(fileName::contains)
+                        || rule.pathContains().stream().anyMatch(pathLower::contains)
+                        || rule.fileExtensions().stream().anyMatch(fileName::endsWith);
+
+                if (matches) {
+                    detected[i] = true;
+                    continue;
+                }
+
+                // Señales de contenido (solo en extensiones relevantes)
+                if (!rule.contentSignals().isEmpty()
+                        && ArchitectureDetectionRules.FRONTEND_CONTENT_SCAN_EXTENSIONS.stream().anyMatch(fileName::endsWith)) {
+                    try {
+                        String content = Files.readString(filePath);
+                        if (rule.contentSignals().stream().anyMatch(content::contains)) {
+                            detected[i] = true;
+                        }
+                    } catch (IOException ignored) {}
+                }
             }
         }
 
-        if (hasIonic) return FrontendFramework.IONIC;
-        if (hasNext) return FrontendFramework.NEXT_JS;
-        if (hasAngularJson) return FrontendFramework.ANGULAR;
-        if (hasVue) return FrontendFramework.VUE;
-        if (hasReact) return FrontendFramework.REACT;
-        if (hasSvelte) return FrontendFramework.SVELTE;
-
+        // Devolver el primer framework detectado (orden = prioridad)
+        for (int i = 0; i < rules.size(); i++) {
+            if (detected[i]) return rules.get(i).framework();
+        }
         return FrontendFramework.NONE;
     }
 
-    private List<String> detectFrontendArchitectureEvidence(ScannedFileMap scannedFiles, ProjectKind projectKind, FrontendFramework framework) {
+    /**
+     * Detecta evidencias de arquitectura frontend (Feature-based, Shared/Core layers,
+     * Facade pattern, Signals, Standalone components, Lazy loading).
+     * Usa los segmentos y patrones de {@link ArchitectureDetectionRules}.
+     */
+    private List<String> detectFrontendArchitectureEvidence(ScannedFileMap scannedFiles, ProjectKind projectKind) {
         List<String> notes = new ArrayList<>();
-        if (projectKind == ProjectKind.BACKEND) {
-            return notes;
-        }
-        if (scannedFiles == null || scannedFiles.getAllFilePaths() == null) {
-            return notes;
-        }
+        if (projectKind == ProjectKind.BACKEND) return notes;
+        if (scannedFiles == null || scannedFiles.getAllFilePaths() == null) return notes;
 
         Set<String> featureDirs = new TreeSet<>();
         boolean sharedLayerDetected = false;
@@ -618,76 +570,83 @@ public class ArchitectureEvidenceDetectorStage {
             String pathStr = filePath.toString().replace("\\", "/");
             String pathLower = pathStr.toLowerCase();
             String fileName = filePath.getFileName().toString();
+            String fileNameLower = fileName.toLowerCase();
 
-            if (pathLower.contains("/features/") || pathLower.contains("/feature/")) {
-                int idx = pathLower.indexOf("/features/");
-                if (idx == -1) idx = pathLower.indexOf("/feature/");
-                if (idx != -1) {
+            // Feature-based architecture
+            for (String segment : ArchitectureDetectionRules.FRONTEND_FEATURE_SEGMENTS) {
+                if (pathLower.contains(segment)) {
+                    int idx = pathLower.indexOf(segment);
                     String sub = pathStr.substring(idx + 1);
                     String[] parts = sub.split("/");
-                    if (parts.length >= 2) {
-                        featureDirs.add(parts[0] + "/" + parts[1]);
-                    }
+                    if (parts.length >= 2) featureDirs.add(parts[0] + "/" + parts[1]);
+                    break;
                 }
             }
 
-            if (pathLower.contains("/shared/") || pathLower.contains("/shared")) sharedLayerDetected = true;
-            if (pathLower.contains("/core/") || pathLower.contains("/core")) coreLayerDetected = true;
-            if (pathLower.contains("/data-access/") || pathLower.contains("/services/") || pathLower.contains("/api/")) dataAccessLayerDetected = true;
-            if (pathLower.contains("/pages/") || pathLower.contains("/views/") || pathLower.contains("/containers/")) pagesDetected = true;
-            if (pathLower.contains("facade") || fileName.toLowerCase().endsWith("facade.ts")) facadeDetected = true;
+            if (!sharedLayerDetected)
+                sharedLayerDetected = ArchitectureDetectionRules.FRONTEND_SHARED_SEGMENTS.stream().anyMatch(pathLower::contains);
+            if (!coreLayerDetected)
+                coreLayerDetected = ArchitectureDetectionRules.FRONTEND_CORE_SEGMENTS.stream().anyMatch(pathLower::contains);
+            if (!dataAccessLayerDetected)
+                dataAccessLayerDetected = ArchitectureDetectionRules.FRONTEND_DATA_ACCESS_SEGMENTS.stream().anyMatch(pathLower::contains);
+            if (!pagesDetected)
+                pagesDetected = ArchitectureDetectionRules.FRONTEND_PAGE_SEGMENTS.stream().anyMatch(pathLower::contains);
 
-            if (fileName.endsWith(".ts") || fileName.endsWith(".js") || fileName.endsWith(".tsx") || fileName.endsWith(".vue")) {
+            if (!facadeDetected) {
+                facadeDetected = ArchitectureDetectionRules.FRONTEND_FACADE_SEGMENTS.stream().anyMatch(pathLower::contains)
+                        || fileNameLower.endsWith(ArchitectureDetectionRules.FRONTEND_FACADE_FILE_SUFFIX);
+            }
+
+            // Análisis de contenido en archivos fuente frontend
+            if (ArchitectureDetectionRules.FRONTEND_SOURCE_EXTENSIONS.stream().anyMatch(fileName::endsWith)) {
                 try {
                     String content = Files.readString(filePath);
 
-                    if (fileName.toLowerCase().endsWith("facade.ts") || content.contains("Facade")) {
+                    if (fileNameLower.endsWith(ArchitectureDetectionRules.FRONTEND_FACADE_FILE_SUFFIX)
+                            || content.contains("Facade")) {
                         Matcher m = Pattern.compile("export\\s+class\\s+(\\w+Facade)").matcher(content);
-                        if (m.find()) {
-                            facadeClassNames.add(m.group(1));
-                        }
+                        if (m.find()) facadeClassNames.add(m.group(1));
                     }
 
-                    if (content.contains("signal(") || content.contains("computed(") || content.contains("asReadonly()")) {
+                    if (!signalsDetected && (content.contains("signal(")
+                            || content.contains("computed(")
+                            || content.contains("asReadonly()"))) {
                         signalsDetected = true;
                     }
-                    if (content.contains("standalone: true") || content.contains("standalone:true")) {
+                    if (!standaloneComponentsDetected && (content.contains("standalone: true")
+                            || content.contains("standalone:true"))) {
                         standaloneComponentsDetected = true;
                     }
-                    if (content.contains("loadComponent") || content.contains("loadChildren") || content.contains("React.lazy")) {
-                        Path relPath = scannedFiles.getRootPath() != null ? scannedFiles.getRootPath().relativize(filePath) : filePath;
+                    if (content.contains("loadComponent")
+                            || content.contains("loadChildren")
+                            || content.contains("React.lazy")) {
+                        Path relPath = scannedFiles.getRootPath() != null
+                                ? scannedFiles.getRootPath().relativize(filePath)
+                                : filePath;
                         lazyRouteFiles.add(relPath.toString().replace("\\", "/"));
                     }
                 } catch (IOException ignored) {}
             }
         }
 
+        // Componer notas de evidencia
         if (!featureDirs.isEmpty()) {
             notes.add("Arquitectura basada en características (Feature-based) detectada con carpetas: " + String.join(", ", featureDirs));
         }
-        if (sharedLayerDetected) {
-            notes.add("Capa o módulo compartido (shared) detectado.");
-        }
-        if (coreLayerDetected) {
-            notes.add("Capa o módulo central (core) detectado.");
-        }
-        if (dataAccessLayerDetected) {
-            notes.add("Capa de acceso a datos / servicios (data-access / services / api) separada.");
-        }
-        if (pagesDetected) {
-            notes.add("Componentes de página / contenedor (pages / views) identificados.");
-        }
+        if (sharedLayerDetected)      notes.add("Capa o módulo compartido (shared) detectado.");
+        if (coreLayerDetected)        notes.add("Capa o módulo central (core) detectado.");
+        if (dataAccessLayerDetected)  notes.add("Capa de acceso a datos / servicios (data-access / services / api) separada.");
+        if (pagesDetected)            notes.add("Componentes de página / contenedor (pages / views) identificados.");
         if (facadeDetected || !facadeClassNames.isEmpty()) {
-            notes.add("Patrón Facade detectado" + (!facadeClassNames.isEmpty() ? " (" + String.join(", ", facadeClassNames) + ")" : "") + " para encapsular estado y servicios.");
+            notes.add("Patrón Facade detectado"
+                    + (!facadeClassNames.isEmpty() ? " (" + String.join(", ", facadeClassNames) + ")" : "")
+                    + " para encapsular estado y servicios.");
         }
-        if (signalsDetected) {
-            notes.add("Uso de reactividad / Signals (signal, computed, asReadonly) detectado para gestión de estado.");
-        }
-        if (standaloneComponentsDetected) {
-            notes.add("Componentes Standalone (standalone: true) detectados.");
-        }
+        if (signalsDetected)          notes.add("Uso de reactividad / Signals (signal, computed, asReadonly) detectado para gestión de estado.");
+        if (standaloneComponentsDetected) notes.add("Componentes Standalone (standalone: true) detectados.");
         if (!lazyRouteFiles.isEmpty()) {
-            notes.add("Carga diferida de rutas (Lazy Loading via loadComponent / loadChildren) detectada explícitamente en: " + String.join(", ", lazyRouteFiles));
+            notes.add("Carga diferida de rutas (Lazy Loading via loadComponent / loadChildren) detectada explícitamente en: "
+                    + String.join(", ", lazyRouteFiles));
         }
 
         return notes;

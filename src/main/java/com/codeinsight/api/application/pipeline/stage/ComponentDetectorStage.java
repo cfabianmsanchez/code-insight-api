@@ -1,5 +1,8 @@
 package com.codeinsight.api.application.pipeline.stage;
 
+import com.codeinsight.api.application.pipeline.rules.ComponentDetectionRules;
+import com.codeinsight.api.application.pipeline.rules.ComponentDetectionRules.ComponentRule;
+import com.codeinsight.api.application.pipeline.rules.ComponentDetectionRules.PathConventionRule;
 import com.codeinsight.api.domain.exception.InvalidRepositoryException;
 import com.codeinsight.api.domain.model.ComponentAnalysisResult;
 import com.codeinsight.api.domain.model.ComponentType;
@@ -16,16 +19,15 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.regex.Pattern;
 
 /**
- * Detector de Componentes de Software.
- * 
- * Inspecciona el contenido de los archivos de código fuente (.java, .ts) para
- * identificar
- * y clasificar sus componentes según estereotipos de framework (Controladores,
- * Servicios,
- * Repositorios, Entidades, Beans de Configuración y componentes Frontend).
+ * Inspecciona el contenido de los archivos de código fuente para identificar y clasificar
+ * sus componentes según estereotipos de framework (Controladores, Servicios, Repositorios,
+ * Entidades, Beans de Configuración y componentes Frontend).
+ * <p>
+ * Esta clase es genérica: no contiene ninguna regla ni patrón hardcoded.
+ * Todas las reglas de detección viven en {@link ComponentDetectionRules}.
+ * Para agregar soporte a un nuevo lenguaje o patrón, edita esa clase.
  */
 @Component
 public class ComponentDetectorStage {
@@ -83,63 +85,72 @@ public class ComponentDetectorStage {
     }
 
     /**
-     * Determina si la ruta corresponde a un archivo de código fuente analizable
-     * (.java, .ts),
-     * filtrando carpetas de pruebas (src/test/) y archivos unitarios (*Test.java).
+     * Determina si la ruta corresponde a un archivo de código fuente analizable,
+     * filtrando carpetas y archivos de test.
+     * <p>
+     * Las extensiones válidas y los patrones de exclusión se obtienen de
+     * {@link ComponentDetectionRules}.
      */
     private boolean isSourceCodeFile(String relativePath) {
         String lower = relativePath.toLowerCase();
-        if (lower.contains("src/test/") || lower.contains("/test/") || lower.endsWith("test.java")
-                || lower.endsWith("test.ts")) {
-            return false;
+
+        for (String segment : ComponentDetectionRules.TEST_PATH_SEGMENTS) {
+            if (lower.contains(segment)) return false;
         }
-        return lower.endsWith(".java") || lower.endsWith(".ts");
+        for (String suffix : ComponentDetectionRules.TEST_FILE_SUFFIXES) {
+            if (lower.contains(suffix) || lower.endsWith(suffix)) return false;
+        }
+
+        return ComponentDetectionRules.SOURCE_EXTENSIONS.stream().anyMatch(lower::endsWith);
     }
 
     /**
-     * Analiza el texto del archivo para inferir el tipo de componente según anotaciones
-     * de Spring Boot (ej. @RestController, @Service) o Angular (ej. @Component, @Injectable).
-     * Omite comentarios JavaDoc y de línea para evitar falsos positivos.
+     * Analiza el texto del archivo y su ruta para inferir el tipo de componente.
+     * Primero aplica las reglas de contenido del lenguaje correspondiente;
+     * si ninguna coincide, aplica las convenciones de ruta como fallback.
      */
     private ComponentType detectComponentType(String relativePath, String content) {
         String lowerPath = relativePath.toLowerCase();
-        String cleanContent = stripComments(content);
+        String cleanContent = stripComments(content).toLowerCase();
 
-        if (lowerPath.endsWith(".java")) {
-            if (hasAnnotation(cleanContent, "RestController") || hasAnnotation(cleanContent, "Controller")) {
-                return ComponentType.CONTROLLER;
-            }
-            if (hasAnnotation(cleanContent, "Service")) {
-                return ComponentType.SERVICE;
-            }
-            if (hasAnnotation(cleanContent, "Repository") || hasInterfaceExtension(cleanContent, "JpaRepository")
-                    || hasInterfaceExtension(cleanContent, "CrudRepository")) {
-                return ComponentType.REPOSITORY;
-            }
-            if (hasAnnotation(cleanContent, "Entity") || hasAnnotation(cleanContent, "Table")) {
-                return ComponentType.ENTITY;
-            }
-            if (hasAnnotation(cleanContent, "Configuration")) {
-                return ComponentType.CONFIGURATION;
-            }
-            if (hasAnnotation(cleanContent, "Component")) {
-                return ComponentType.COMPONENT;
-            }
-        } else if (lowerPath.endsWith(".ts")) {
-            if (hasAnnotation(cleanContent, "Component")) {
-                return ComponentType.FRONTEND_COMPONENT;
-            }
-            if (hasAnnotation(cleanContent, "Injectable")) {
-                return ComponentType.FRONTEND_SERVICE;
+        // Buscar la lista de reglas correspondiente a la extensión del archivo
+        for (Map.Entry<String, List<ComponentRule>> entry : ComponentDetectionRules.RULES_BY_EXTENSION.entrySet()) {
+            if (lowerPath.endsWith(entry.getKey())) {
+                ComponentType type = matchRules(entry.getValue(), cleanContent);
+                if (type != null) return type;
+                break;
             }
         }
 
+        return matchPathConventions(lowerPath);
+    }
+
+    private ComponentType matchRules(List<ComponentRule> rules, String cleanContent) {
+        for (ComponentRule rule : rules) {
+            if (rule.matcher().test(cleanContent)) {
+                return rule.type();
+            }
+        }
         return null;
     }
 
     /**
-     * Elimina los comentarios de bloque (/* ... *\/) y de línea (// ...) del contenido del archivo
-     * para evitar falsos positivos al detectar anotaciones presentes en JavaDocs o comentarios.
+     * Fallback: infiere el tipo de componente a partir de convenciones de directorio
+     * y sufijos de nombre de archivo definidos en {@link ComponentDetectionRules#PATH_CONVENTION_RULES}.
+     */
+    private ComponentType matchPathConventions(String lowerPath) {
+        for (PathConventionRule rule : ComponentDetectionRules.PATH_CONVENTION_RULES) {
+            boolean matchesDir    = rule.directorySegments().stream().anyMatch(lowerPath::contains);
+            boolean matchesSuffix = rule.fileSuffixes().stream().anyMatch(lowerPath::endsWith);
+            if (matchesDir || matchesSuffix) {
+                return rule.type();
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Elimina los comentarios de bloque y de línea para evitar falsos positivos.
      */
     private String stripComments(String content) {
         if (content == null) {
@@ -149,28 +160,6 @@ public class ComponentDetectorStage {
         return noBlock.replaceAll("//.*", "");
     }
 
-    /**
-     * Verifica si una anotación está presente en el código usando límites de
-     * palabra (\\b)
-     * para evitar falsos positivos (por ejemplo, evitar
-     * confundir @RestControllerAdvice con @RestController).
-     */
-    private boolean hasAnnotation(String content, String annotation) {
-        return Pattern.compile("@" + Pattern.quote(annotation) + "\\b").matcher(content).find();
-    }
-
-    /**
-     * Verifica si el código contiene la herencia explícita de una interfaz (ej.
-     * extends JpaRepository).
-     */
-    private boolean hasInterfaceExtension(String content, String interfaceName) {
-        return Pattern.compile("\\bextends\\s+.*" + Pattern.quote(interfaceName) + "\\b").matcher(content).find();
-    }
-
-    /**
-     * Extrae el nombre simple de la clase o componente removiendo la extensión del
-     * archivo.
-     */
     private String extractClassName(String relativePath) {
         Path path = Path.of(relativePath);
         String fileName = path.getFileName().toString();

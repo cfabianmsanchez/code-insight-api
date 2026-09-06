@@ -5,7 +5,7 @@ import com.codeinsight.api.application.pipeline.stage.ArchitectureEvidenceDetect
 import com.codeinsight.api.application.pipeline.stage.ComponentDetectorStage;
 import com.codeinsight.api.application.pipeline.stage.ContextBuilderStage;
 import com.codeinsight.api.application.pipeline.stage.FileScannerStage;
-import com.codeinsight.api.application.pipeline.stage.OllamaAnalysisStage;
+import com.codeinsight.api.application.pipeline.stage.AiSynthesisStage;
 import com.codeinsight.api.application.pipeline.stage.RepositoryLoaderStage;
 import com.codeinsight.api.application.pipeline.stage.TechnologyDetectorStage;
 import com.codeinsight.api.application.port.in.AnalyzeRepositoryUseCase;
@@ -34,7 +34,7 @@ public class AnalyzeRepositoryService implements AnalyzeRepositoryUseCase {
     private final ComponentDetectorStage componentDetector;
     private final ArchitectureEvidenceDetectorStage architectureEvidenceDetector;
     private final ContextBuilderStage contextBuilder;
-    private final OllamaAnalysisStage ollamaAnalysis;
+    private final AiSynthesisStage aiSynthesis;
 
     /**
      * Crea una nueva instancia del servicio inyectando todas las etapas del pipeline.
@@ -45,14 +45,14 @@ public class AnalyzeRepositoryService implements AnalyzeRepositoryUseCase {
                                    ComponentDetectorStage componentDetector,
                                    ArchitectureEvidenceDetectorStage architectureEvidenceDetector,
                                    ContextBuilderStage contextBuilder,
-                                   OllamaAnalysisStage ollamaAnalysis) {
+                                   AiSynthesisStage aiSynthesis) {
         this.repositoryLoader = repositoryLoader;
         this.fileScanner = fileScanner;
         this.technologyDetector = technologyDetector;
         this.componentDetector = componentDetector;
         this.architectureEvidenceDetector = architectureEvidenceDetector;
         this.contextBuilder = contextBuilder;
-        this.ollamaAnalysis = ollamaAnalysis;
+        this.aiSynthesis = aiSynthesis;
     }
 
     /**
@@ -81,12 +81,12 @@ public class AnalyzeRepositoryService implements AnalyzeRepositoryUseCase {
             // Etapa 6: Context Builder (Ensamblado del prompt estructurado y contexto de análisis)
             AnalysisContext analysisContext = contextBuilder.buildContext(request, scannedFiles, technologyStack, componentAnalysis, architectureEvidence);
 
-            // Etapa 7: Ollama Analysis (Síntesis de arquitectura asistida por IA)
-            String aiSynthesis = ollamaAnalysis.analyze(analysisContext);
-            String aiModelUsed = ollamaAnalysis.getActiveModel();
+            // Etapa 7: AI Synthesis (Síntesis de arquitectura asistida por IA)
+            String aiSynthesisReport = aiSynthesis.analyze(analysisContext);
+            String aiModelUsed = aiSynthesis.getActiveModel();
 
-            // Extraer el resumen funcional de la síntesis generada por Ollama
-            String functionalSummary = extractFunctionalSummary(aiSynthesis);
+            // Extraer el resumen funcional de la síntesis generada por la IA
+            String functionalSummary = extractFunctionalSummary(aiSynthesisReport);
 
             return RepositoryAnalysisResult.builder()
                     .projectKey(request.getProjectKey())
@@ -97,7 +97,7 @@ public class AnalyzeRepositoryService implements AnalyzeRepositoryUseCase {
                     .componentAnalysis(componentAnalysis)
                     .architectureEvidence(architectureEvidence)
                     .analysisContext(analysisContext)
-                    .aiSynthesis(aiSynthesis)
+                    .aiSynthesis(aiSynthesisReport)
                     .functionalSummary(functionalSummary)
                     .aiModelUsed(aiModelUsed)
                     .extensionCounts(scannedFiles.getExtensionCounts())
@@ -107,7 +107,7 @@ public class AnalyzeRepositoryService implements AnalyzeRepositoryUseCase {
     }
 
     /**
-     * Extrae el bloque de "Resumen Funcional" de la respuesta completa de Ollama.
+     * Extrae el bloque de "Resumen Funcional" de la respuesta completa generada por la IA.
      * Busca el encabezado "## 0." (o "## Resumen Funcional") y devuelve el texto limpio sin la línea de título.
      *
      * @param aiSynthesis Respuesta completa generada por el LLM.

@@ -18,8 +18,6 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * Etapa 2 del Pipeline: File Scanner.
- * 
  * Recorre el árbol de directorios efímero, filtra carpetas de construido/ruido (.git, target, etc.)
  * y compila métricas de archivos, extensiones y manifiestos clave del proyecto.
  */

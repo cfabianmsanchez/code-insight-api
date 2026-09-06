@@ -95,4 +95,42 @@ class ComponentDetectorStageTest {
         assertTrue(result.getComponents().stream().noneMatch(c -> c.getType() == ComponentType.CONTROLLER));
         assertTrue(result.getComponents().stream().anyMatch(c -> c.getName().equals("JwtParser") && c.getType() == ComponentType.COMPONENT));
     }
+
+    @Test
+    void detect_shouldIdentifyMultiLanguageComponentsCorrectly(@TempDir Path tempDir) throws IOException {
+        Path pyController = tempDir.resolve("routes.py");
+        Files.writeString(pyController, """
+                from fastapi import APIRouter
+                router = APIRouter()
+                @router.get("/users")
+                def get_users(): pass
+                """);
+
+        Path reactComponent = tempDir.resolve("UserCard.tsx");
+        Files.writeString(reactComponent, """
+                import React, { useState } from 'react';
+                export const UserCard = () => { return <div>User</div>; };
+                """);
+
+        Path goHandler = tempDir.resolve("user_handler.go");
+        Files.writeString(goHandler, """
+                package handler
+                import "github.com/gin-gonic/gin"
+                func SetupRoutes(r *gin.Engine) {
+                    r.GET("/ping", func(c *gin.Context) {})
+                }
+                """);
+
+        ScannedFileMap scannedFiles = ScannedFileMap.builder()
+                .rootPath(tempDir)
+                .relativeFilePaths(List.of("routes.py", "UserCard.tsx", "user_handler.go"))
+                .build();
+
+        ComponentAnalysisResult result = stage.detect(scannedFiles);
+
+        assertNotNull(result);
+        assertEquals(3, result.getTotalComponents());
+        assertEquals(2, result.getComponentCounts().get(ComponentType.CONTROLLER.name()));
+        assertEquals(1, result.getComponentCounts().get(ComponentType.FRONTEND_COMPONENT.name()));
+    }
 }

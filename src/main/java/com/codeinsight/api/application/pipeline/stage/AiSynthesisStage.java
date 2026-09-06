@@ -5,22 +5,24 @@ import com.codeinsight.api.domain.model.AnalysisContext;
 import org.springframework.stereotype.Component;
 
 /**
- * Etapa 7 del Pipeline: Ollama Analysis Stage.
- * 
+ * Etapa 7 del Pipeline: AI Synthesis Stage.
+ *
  * Invoca el puerto de salida {@link ArchitectureSynthesisPort} para obtener la síntesis
  * técnica generada por el LLM a partir del contexto determinístico compilado en la Etapa 6.
+ * Esta clase es agnóstica del motor de IA: delega completamente en el puerto de salida,
+ * cuya implementación concreta (Ollama, OpenAI, Gemini, etc.) se inyecta por Spring.
  */
 @Component
-public class OllamaAnalysisStage {
+public class AiSynthesisStage {
 
     private final ArchitectureSynthesisPort synthesisPort;
 
     /**
      * Crea una nueva instancia inyectando el puerto de síntesis de arquitectura.
      *
-     * @param synthesisPort Puerto de salida hacia el motor de IA.
+     * @param synthesisPort Puerto de salida hacia el motor de IA activo.
      */
-    public OllamaAnalysisStage(ArchitectureSynthesisPort synthesisPort) {
+    public AiSynthesisStage(ArchitectureSynthesisPort synthesisPort) {
         this.synthesisPort = synthesisPort;
     }
 
@@ -37,6 +39,9 @@ public class OllamaAnalysisStage {
         return synthesisPort.synthesize(context.getSystemPrompt(), context.getUserPrompt());
     }
 
+    /**
+     * Retorna el identificador del modelo de IA actualmente activo, delegando en el puerto.
+     */
     public String getActiveModel() {
         return synthesisPort.getActiveModel();
     }

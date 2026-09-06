@@ -17,7 +17,9 @@ public interface ArchitectureSynthesisPort {
      */
     String synthesize(String systemPrompt, String userPrompt);
 
-    default String getActiveModel() {
-        return "Ollama";
-    }
+    /**
+     * Retorna el identificador del modelo de IA actualmente activo.
+     * Cada implementación concreta del puerto debe proveer este valor.
+     */
+    String getActiveModel();
 }
