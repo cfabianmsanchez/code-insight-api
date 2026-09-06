@@ -47,4 +47,37 @@ class ZipExtractorFetcherAdapterTest {
 
         assertFalse(Files.exists(createdTempPath));
     }
+
+    @Test
+    void fetchCode_shouldFilterMacOsFilesAndExtractNestedDirectories() throws IOException {
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        try (ZipOutputStream zos = new ZipOutputStream(baos)) {
+            // Fichero normal en subcarpeta
+            ZipEntry entry1 = new ZipEntry("src/app/app.component.ts");
+            zos.putNextEntry(entry1);
+            zos.write("export class AppComponent {}".getBytes());
+            zos.closeEntry();
+
+            // Fichero __MACOSX que debe ser ignorado
+            ZipEntry macEntry = new ZipEntry("__MACOSX/._app.component.ts");
+            zos.putNextEntry(macEntry);
+            zos.write("mac-junk".getBytes());
+            zos.closeEntry();
+        }
+
+        FetchCodeRequest request = FetchCodeRequest.builder()
+                .projectKey("mac-zip-test")
+                .sourceType(SourceType.ZIP_FILE)
+                .zipInputStream(new ByteArrayInputStream(baos.toByteArray()))
+                .build();
+
+        Path createdTempPath;
+        try (TempCodeDirectory tempDir = adapter.fetchCode(request)) {
+            assertNotNull(tempDir);
+            createdTempPath = tempDir.getTempPath();
+            assertTrue(Files.exists(createdTempPath.resolve("src/app/app.component.ts")));
+            assertFalse(Files.exists(createdTempPath.resolve("__MACOSX")));
+        }
+        assertFalse(Files.exists(createdTempPath));
+    }
 }

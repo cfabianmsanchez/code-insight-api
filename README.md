@@ -1,8 +1,8 @@
 # Code Insight API (`code-insight-api`) 🚀
 
-Backend desarrollado en **Java 17 / 26** y **Spring Boot 3** que implementa **Arquitectura Hexagonal (Puertos y Adaptadores)** y un **Pipeline de Ingeniería Inversa de 7 Etapas** para el análisis estructural, de componentes, inferencia de relaciones y síntesis arquitectónica asistida por IA local a partir de repositorios GitHub o archivos ZIP.
+Backend desarrollado en **Java 17+** y **Spring Boot 3** que implementa **Arquitectura Hexagonal (Puertos y Adaptadores)** y un **Pipeline de Ingeniería Inversa de 7 Etapas** para el análisis estructural, de componentes, inferencia de relaciones y síntesis arquitectónica asistida por IA local a partir de repositorios GitHub o archivos ZIP.
 
-> **Status MVP 1.0**: ✅ **Cerrado y Funcional**. Backend completo con soporte determinístico multiplataforma, gestión de prompts versionados y síntesis IA resiliente.
+> **Status MVP 1.0**: ✅ **Cerrado y Funcional**. Backend completo con soporte determinístico multiplataforma, clasificación por `ProjectKind` (Backend, Frontend, Fullstack, Mobile), gestión de modelos IA vía `AiModelManagementPort` y síntesis IA resiliente.
 
 ---
 
@@ -23,7 +23,9 @@ com.codeinsight.api
 │       ├── ComponentType.java
 │       ├── DetectedComponent.java
 │       ├── FetchCodeRequest.java
-│       ├── RepositoryAnalysisResult.java       # Resultado consolidado + functionalSummary
+│       ├── FrontendFramework.java              # ANGULAR, REACT, VUE, NEXT_JS, IONIC, SVELTE, NONE
+│       ├── ProjectKind.java                    # BACKEND, FRONTEND, FULLSTACK, MOBILE, LIBRARY, UNKNOWN
+│       ├── RepositoryAnalysisResult.java       # Resultado consolidado + aiModelUsed
 │       ├── ScannedFileMap.java
 │       ├── SourceType.java
 │       └── TechnologyStack.java
@@ -38,13 +40,14 @@ com.codeinsight.api
 │   │   ├── FileScannerStage.java               # Etapa 2: Escaneo de archivos y métricas
 │   │   ├── TechnologyDetectorStage.java        # Etapa 3: Detección de stack y manifiestos
 │   │   ├── ComponentDetectorStage.java         # Etapa 4: Identificación de componentes
-│   │   ├── ArchitectureEvidenceDetectorStage.java # Etapa 5: Evidencias e Inferencia de Puertos
+│   │   ├── ArchitectureEvidenceDetectorStage.java # Etapa 5: Evidencias Frontend/Backend y Puertos
 │   │   ├── ContextBuilderStage.java            # Etapa 6: Ensamblado de contexto factual
 │   │   └── OllamaAnalysisStage.java            # Etapa 7: Síntesis de arquitectura con IA
 │   ├── port
 │   │   ├── in
 │   │   │   └── AnalyzeRepositoryUseCase.java   # Input Port
 │   │   └── out
+│   │       ├── AiModelManagementPort.java      # Output Port para gestión de modelos de IA
 │   │       ├── ArchitectureSynthesisPort.java  # Output Port para síntesis IA (LLM)
 │   │       └── CodeFetcherPort.java            # Output Port para cargadores de código
 │   └── service
@@ -54,14 +57,15 @@ com.codeinsight.api
     ├── adapter
     │   ├── in/rest                             # Driving Adapter (REST Controllers & DTOs)
     │   │   ├── AnalyzeRepositoryController.java
-    │   │   ├── dto/                            # Response DTO con functionalSummary
+    │   │   ├── SystemConfigController.java     # Endpoint para selección dinámica de modelos Ollama
+    │   │   ├── dto/                            # Response DTOs
     │   │   ├── mapper/                         # Mapeador dominio ↔ DTO REST
     │   │   └── exception/                      # GlobalExceptionHandler (RFC 7807)
     │   └── out
-    │       ├── ai                              # Driven Adapter para Ollama (RestClient)
+    │       ├── ai                              # Driven Adapter para Ollama (RestClient & ZipFile)
     │       │   ├── dto/                        # DTOs de comunicación HTTP
     │       │   └── OllamaAdapter.java          # Cliente REST hacia Ollama API
-    │       ├── fetcher                         # Driven Adapters (Git & ZIP Fetchers)
+    │       ├── fetcher                         # Driven Adapters (Git & ZipFile Extractors)
     │       │   ├── GitRepositoryFetcherAdapter.java
     │       │   └── ZipExtractorFetcherAdapter.java
     │       └── prompt                          # Driven Adapter de Plantillas

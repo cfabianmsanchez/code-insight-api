@@ -15,6 +15,7 @@ import org.springframework.web.client.RestClient;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
@@ -84,6 +85,12 @@ public class OllamaAdapter implements ArchitectureSynthesisPort, AiModelManageme
         }
         String cleanModel = model.trim();
         List<String> available = fetchAvailableModels();
+        if (available.isEmpty()) {
+            // Si Ollama no está respondiendo en /api/tags, permitimos configurar el modelo directamente si es válido
+            this.activeModel.set(cleanModel);
+            log.info("Modelo de IA activo actualizado a: {}", cleanModel);
+            return;
+        }
         if (!available.contains(cleanModel)) {
             throw new IllegalArgumentException("El modelo de Ollama no está instalado o disponible en el servidor: " + cleanModel);
         }
@@ -94,7 +101,7 @@ public class OllamaAdapter implements ArchitectureSynthesisPort, AiModelManageme
     /**
      * Consulta dinámicamente los modelos instalados en el servidor local de Ollama (/api/tags).
      * Si la consulta a Ollama es exitosa, retorna EXCLUSIVAMENTE los modelos realmente instalados.
-     * Si la consulta falla o el servidor está inactivo, retorna los modelos de respaldo configurados.
+     * Si la consulta falla o el servidor está inactivo, retorna una lista vacía para indicar estado desconectado.
      */
     @Override
     public List<String> fetchAvailableModels() {
@@ -116,14 +123,11 @@ public class OllamaAdapter implements ArchitectureSynthesisPort, AiModelManageme
                     return new ArrayList<>(installedModels);
                 }
             }
-        } catch (Exception e) {
-            log.debug("No se pudieron obtener los modelos dinámicos de Ollama (/api/tags). Usando lista de respaldo. Detalle: {}", e.getMessage());
+        } catch (Throwable e) {
+            log.debug("No se pudieron obtener los modelos dinámicos de Ollama en /api/tags: {}", e.getMessage());
         }
 
-        Set<String> fallbackSet = new LinkedHashSet<>();
-        fallbackSet.add(getActiveModel());
-        fallbackSet.addAll(fallbackModels);
-        return new ArrayList<>(fallbackSet);
+        return Collections.emptyList();
     }
 
     /**

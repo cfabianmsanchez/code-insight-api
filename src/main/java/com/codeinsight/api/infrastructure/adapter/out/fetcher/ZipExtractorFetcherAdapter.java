@@ -15,13 +15,14 @@ import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.zip.ZipEntry;
-import java.util.zip.ZipInputStream;
+import java.util.zip.ZipFile;
 
 /**
  * Adaptador de Salida (Outbound Adapter): Cargador de Archivos ZIP.
  * 
  * Implementa {@link CodeFetcherPort} descomprimiendo el contenido de un stream de archivo ZIP
  * en una carpeta temporal efímera, omitiendo archivos y carpetas de ruido de macOS (__MACOSX, ._).
+ * Utiliza {@link ZipFile} para soportar descriptores de extensión (EXT descriptors) de macOS Finder y 7-Zip.
  */
 @Component
 public class ZipExtractorFetcherAdapter implements CodeFetcherPort {
@@ -58,40 +59,49 @@ public class ZipExtractorFetcherAdapter implements CodeFetcherPort {
     }
 
     /**
-     * Recorre el archivo ZIP y escribe los directorios y archivos en el destino temporal.
+     * Recorre el archivo ZIP guardándolo temporalmente en disco y procesándolo con {@link ZipFile}
+     * para soportar todos los formatos de compresión, descriptores EXT (macOS Finder, 7-Zip)
+     * y prevención de Zip Slip.
      */
     private void extractZipStream(InputStream inputStream, Path targetDir) throws IOException {
-        byte[] buffer = new byte[8192];
-        try (ZipInputStream zis = new ZipInputStream(inputStream)) {
-            ZipEntry zipEntry = zis.getNextEntry();
-            while (zipEntry != null) {
-                String entryName = zipEntry.getName();
-                String fileNameOnly = new File(entryName).getName();
-                if (entryName.contains("__MACOSX") || fileNameOnly.startsWith("._")) {
-                    zipEntry = zis.getNextEntry();
-                    continue;
-                }
+        Path tempZipFile = Files.createTempFile("code-insight-upload-", ".zip");
+        try {
+            Files.copy(inputStream, tempZipFile, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+            byte[] buffer = new byte[8192];
+            try (ZipFile zipFile = new ZipFile(tempZipFile.toFile())) {
+                var entries = zipFile.entries();
+                while (entries.hasMoreElements()) {
+                    ZipEntry zipEntry = entries.nextElement();
+                    String entryName = zipEntry.getName();
+                    String fileNameOnly = new File(entryName).getName();
+                    if (entryName.contains("__MACOSX") || fileNameOnly.startsWith("._")) {
+                        continue;
+                    }
 
-                File newFile = newFile(targetDir.toFile(), zipEntry);
-                if (zipEntry.isDirectory()) {
-                    if (!newFile.isDirectory() && !newFile.mkdirs()) {
-                        throw new RepositoryFetchException("Failed to create directory " + newFile);
-                    }
-                } else {
-                    File parent = newFile.getParentFile();
-                    if (!parent.isDirectory() && !parent.mkdirs()) {
-                        throw new RepositoryFetchException("Failed to create directory " + parent);
-                    }
-                    try (FileOutputStream fos = new FileOutputStream(newFile)) {
-                        int len;
-                        while ((len = zis.read(buffer)) > 0) {
-                            fos.write(buffer, 0, len);
+                    File newFile = newFile(targetDir.toFile(), zipEntry);
+                    if (zipEntry.isDirectory()) {
+                        if (!newFile.isDirectory() && !newFile.mkdirs()) {
+                            throw new RepositoryFetchException("Failed to create directory " + newFile);
+                        }
+                    } else {
+                        File parent = newFile.getParentFile();
+                        if (!parent.isDirectory() && !parent.mkdirs()) {
+                            throw new RepositoryFetchException("Failed to create directory " + parent);
+                        }
+                        try (InputStream entryStream = zipFile.getInputStream(zipEntry);
+                             FileOutputStream fos = new FileOutputStream(newFile)) {
+                            int len;
+                            while ((len = entryStream.read(buffer)) > 0) {
+                                fos.write(buffer, 0, len);
+                            }
                         }
                     }
                 }
-                zipEntry = zis.getNextEntry();
             }
-            zis.closeEntry();
+        } finally {
+            try {
+                Files.deleteIfExists(tempZipFile);
+            } catch (IOException ignored) {}
         }
     }
 
